@@ -1,0 +1,6 @@
+# Forzar a GitHub a calcular tus archivos de estilos y scripts
+*.css linguist-detectable=true
+*.js linguist-detectable=true
+
+# Marcar las plantillas Jinja como HTML si alteran el porcentaje
+*.html linguist-language=HTML
