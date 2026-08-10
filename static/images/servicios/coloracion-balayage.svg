@@ -1,0 +1,27 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f5a48a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#grad2)"/>
+  <!-- Cabeza -->
+  <circle cx="200" cy="120" r="50" fill="#fdb4b4"/>
+  <!-- Cabello coloreado -->
+  <circle cx="180" cy="100" r="25" fill="#ffb6c1"/>
+  <circle cx="220" cy="100" r="25" fill="#ffd700"/>
+  <circle cx="200" cy="75" r="25" fill="#ff69b4"/>
+  <circle cx="170" cy="130" r="20" fill="#ff1493"/>
+  <circle cx="230" cy="130" r="20" fill="#ff8c00"/>
+  <!-- Brocha de coloración -->
+  <path d="M 100 200 L 120 220 L 110 240 Z" fill="#8b4513"/>
+  <rect x="115" y="210" width="6" height="35" fill="#d2691e"/>
+  <!-- Pelo largo -->
+  <path d="M 170 160 Q 160 220 175 280" fill="none" stroke="#ffb6c1" stroke-width="12"/>
+  <path d="M 230 160 Q 240 220 225 280" fill="none" stroke="#ff1493" stroke-width="12"/>
+  <!-- Texto -->
+  <text x="200" y="330" font-size="20" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial">
+    COLORACIÓN & BALAYAGE
+  </text>
+</svg>

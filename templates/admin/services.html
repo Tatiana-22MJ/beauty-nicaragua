@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Admin · Servicios — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header"><h1>Servicios (NIO)</h1></header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <details class="admin-card" open>
+      <summary>Crear servicio</summary>
+      <form method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="create">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre</label><input name="name" required></div>
+          <div class="form-group"><label>Precio C$</label><input name="price" type="number" step="1" required></div>
+        </div>
+        <div class="form-group"><label>Descripción</label><textarea name="description" rows="2" required></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Duración (min)</label><input name="duration_minutes" type="number" value="60"></div>
+          <div class="form-group"><label>Icono</label><input name="icon" value="✨"></div>
+          <div class="form-group"><label>Orden</label><input name="sort_order" type="number" value="10"></div>
+        </div>
+        <div class="form-group"><label>URL imagen</label><input name="image_url" placeholder="/static/images/services/..."></div>
+        <label class="checkbox-label"><input type="checkbox" name="quote_only"> Solo cotización</label>
+        <button class="btn btn-primary" type="submit">Crear</button>
+      </form>
+    </details>
+
+    {% for s in services %}
+    <details class="admin-card">
+      <summary>{{ s.icon }} {{ s.name }} — {{ s.price|nio }} {% if not s.is_active %}(inactivo){% endif %}</summary>
+      <form method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="service_id" value="{{ s.id }}">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre</label><input name="name" value="{{ s.name }}" required></div>
+          <div class="form-group"><label>Precio C$</label><input name="price" type="number" value="{{ s.price|int }}" required></div>
+        </div>
+        <div class="form-group"><label>Descripción</label><textarea name="description" rows="2" required>{{ s.description }}</textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Duración</label><input name="duration_minutes" type="number" value="{{ s.duration_minutes }}"></div>
+          <div class="form-group"><label>Icono</label><input name="icon" value="{{ s.icon }}"></div>
+          <div class="form-group"><label>Orden</label><input name="sort_order" type="number" value="{{ s.sort_order }}"></div>
+        </div>
+        <div class="form-group"><label>URL imagen</label><input name="image_url" value="{{ s.image_url }}"></div>
+        <label class="checkbox-label"><input type="checkbox" name="quote_only" {% if s.quote_only %}checked{% endif %}> Solo cotización</label>
+        <label class="checkbox-label"><input type="checkbox" name="is_active" {% if s.is_active %}checked{% endif %}> Activo</label>
+        <button class="btn btn-primary" type="submit">Guardar</button>
+      </form>
+    </details>
+    {% endfor %}
+  </main>
+</div>
+{% endblock %}

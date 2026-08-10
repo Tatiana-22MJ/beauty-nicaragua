@@ -1,0 +1,11 @@
+<aside class="admin-nav" aria-label="Admin">
+  <a class="logo" href="{{ url_for('index') }}">Beauty<span>.</span></a>
+  <p class="admin-nav-label">Administración</p>
+  <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+  <a href="{{ url_for('admin.bookings') }}">Citas</a>
+  <a href="{{ url_for('admin.services') }}">Servicios</a>
+  <a href="{{ url_for('admin.packages') }}">Packs</a>
+  <a href="{{ url_for('admin.chats') }}">Chats</a>
+  <a href="{{ url_for('account.dashboard') }}">Mi cuenta</a>
+  <a href="{{ url_for('logout') }}">Salir</a>
+</aside>

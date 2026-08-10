@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Términos — Beauty Nicaragua{% endblock %}
+{% block body %}
+<main class="legal-page" id="contenido-principal">
+  <div class="container legal-inner reveal visible">
+    <p class="section-label">Legal</p>
+    <h1>Términos de uso</h1>
+    <p>Al usar Beauty Nicaragua aceptás estos términos. Los precios en C$ (NIO) son referenciales; tratamientos “cotizar” requieren valoración.</p>
+    <h2>Citas</h2>
+    <ul>
+      <li>La solicitud no garantiza el horario hasta confirmación del salón.</li>
+      <li>Cancelaciones y reprogramaciones se gestionan desde Mi cuenta o WhatsApp.</li>
+      <li>El anticipo por transferencia es opcional salvo indicación del admin.</li>
+    </ul>
+    <h2>Chat</h2>
+    <p>Bella es un asistente automatizado para usuarias registradas. No sustituye consejo médico.</p>
+    <h2>Pagos</h2>
+    <p>Las transferencias deben enviarse a la cuenta publicada. El comprobante se valida manualmente.</p>
+    <p><a href="{{ url_for('index') }}">← Volver</a></p>
+  </div>
+</main>
+{% endblock %}

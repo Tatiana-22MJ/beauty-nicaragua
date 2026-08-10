@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Error 404 — Beauty Nicaragua{% endblock %}
+{% block body %}
+<main class="auth-page" id="contenido-principal">
+  <div class="auth-card reveal visible">
+    <p class="section-label">404</p>
+    <h1>Página no encontrada</h1>
+    <p>El enlace no existe o fue movido.</p>
+    <p style="margin-top:1.5rem"><a class="btn btn-primary" href="{{ url_for('index') }}">Volver al inicio</a></p>
+  </div>
+</main>
+{% endblock %}

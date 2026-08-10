@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Admin · Auditoría — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header">
+      <h1>Logs de Auditoría</h1>
+      <p>Historial de acciones administrativas para seguridad y control.</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>ID Usuario</th>
+            <th>Acción</th>
+            <th>Detalles</th>
+            <th>Fecha (UTC)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.user_id or 'Sistema/Anónimo' }}</td>
+            <td><strong>{{ log.action }}</strong></td>
+            <td>{{ log.detail }}</td>
+            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5">No hay registros de auditoría aún.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+{% endblock %}

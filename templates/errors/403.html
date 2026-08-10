@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Acceso denegado — Beauty Nicaragua{% endblock %}
+{% block body %}
+<main class="auth-page" id="contenido-principal">
+  <div class="auth-card reveal visible">
+    <p class="section-label">403</p>
+    <h1>Acceso denegado</h1>
+    <p>No tenés permisos para ver esta sección (solo administradoras).</p>
+    <p style="margin-top:1.5rem"><a class="btn btn-primary" href="{{ url_for('index') }}">Ir al inicio</a></p>
+  </div>
+</main>
+{% endblock %}

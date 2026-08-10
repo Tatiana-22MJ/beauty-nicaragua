@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Reprogramar cita — Beauty{% endblock %}
+{% block body %}
+<main class="auth-page" id="contenido-principal">
+  <div class="auth-card reveal visible">
+    <p class="section-label">Reprogramar</p>
+    <h1>{{ booking.title }}</h1>
+    <p>Actual: {{ booking.preferred_date }} {{ booking.preferred_time }}</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+    <form method="post" class="auth-form" id="rescheduleForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="preferred_date">Nueva fecha</label>
+        <input type="date" id="preferred_date" name="preferred_date" required value="{{ booking.preferred_date }}">
+      </div>
+      <div class="form-group">
+        <label for="preferred_time">Horario disponible</label>
+        <select id="preferred_time" name="preferred_time" required>
+          <option value="">Cargando…</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Solicitar reprogramación</button>
+      <p class="auth-footer"><a href="{{ url_for('account.dashboard') }}">Volver</a></p>
+    </form>
+  </div>
+</main>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/slots.js') }}" defer></script>
+{% endblock %}

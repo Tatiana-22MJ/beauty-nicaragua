@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Registrarse — Beauty Nicaragua{% endblock %}
+
+{% block body %}
+<header class="site-header" role="banner">
+  <nav class="site-nav" aria-label="Navegación principal">
+    <div class="container nav-inner">
+      <a href="{{ url_for('index') }}" class="logo">Beauty<span aria-hidden="true">.</span></a>
+      <a href="{{ url_for('login') }}" class="nav-btn nav-btn-outline">Iniciar sesión</a>
+    </div>
+  </nav>
+</header>
+
+<main id="contenido-principal" class="auth-page">
+  <div class="auth-card reveal">
+    <header class="auth-header">
+      <p class="section-label">Cuenta Beauty</p>
+      <h1>Crear cuenta</h1>
+      <p>Registrate para reservar citas en Managua y chatear con Bella (solo usuarias autenticadas).</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages" role="status" aria-live="polite">
+        {% for category, message in messages %}
+        <p class="flash flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="auth-trust" aria-label="Ventajas de tu cuenta">
+      <span class="auth-pill">✨ Registro rápido</span>
+      <span class="auth-pill">🛡️ Cuenta protegida</span>
+      <span class="auth-pill">📍 Reserva local</span>
+    </div>
+
+    <p class="auth-tip">Con tu cuenta podrás confirmar tu visita en Managua y manejar tu agenda sin perder el hilo de la reserva.</p>
+
+    <form class="auth-form" method="post" action="{{ url_for('register', next=request.args.get('next')) }}" id="registerForm" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+      <div class="form-group">
+        <label for="full_name">Nombre completo</label>
+        <input type="text" id="full_name" name="full_name" required minlength="2" maxlength="120"
+               autocomplete="name" value="{{ form_data.get('full_name', '') }}">
+        <span class="field-error" id="full_name-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="username">Usuario</label>
+        <input type="text" id="username" name="username" required minlength="3" maxlength="30"
+               pattern="^[a-zA-Z0-9_]{3,30}$" autocomplete="username"
+               value="{{ form_data.get('username', '') }}">
+        <span class="field-hint">3-30 caracteres: letras, números y _</span>
+        <span class="field-error" id="username-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email"
+               value="{{ form_data.get('email', '') }}">
+        <span class="field-error" id="email-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Teléfono</label>
+        <input type="tel" id="phone" name="phone" required autocomplete="tel"
+               pattern="^\+?[\d\s\-()]{8,20}$"
+               placeholder="+505 8877 2117"
+               value="{{ form_data.get('phone', '') }}">
+        <span class="field-hint">Formato Nicaragua: +505 XXXX XXXX</span>
+        <span class="field-error" id="phone-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" required minlength="8"
+               autocomplete="new-password">
+        <span class="field-hint">Mínimo 8 caracteres, letras y números</span>
+        <span class="field-error" id="password-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password">Confirmar contraseña</label>
+        <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
+               autocomplete="new-password">
+        <span class="field-error" id="confirm_password-error"></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Crear cuenta</button>
+    </form>
+
+    <p class="auth-footer">¿Ya tienes cuenta? <a href="{{ url_for('login', next=request.args.get('next')) }}">Inicia sesión</a></p>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/validation.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- base.html: plantilla madre Jinja2. Todas las páginas extienden este archivo. -->
+<html lang="es-NI">
+<!-- lang es-NI indica español de Nicaragua (SEO + accesibilidad). -->
+<head>
+  <!-- Codificación Unicode completa (tildes, ñ, símbolos C$). -->
+  <meta charset="UTF-8">
+  <!-- Viewport responsive: escala correcta en móviles nicaragüenses. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Descripción SEO por defecto (se puede sobreescribir por bloque). -->
+  <meta name="description" content="{% block meta_description %}Beauty Nicaragua — Salón y spa en Managua. Precios en córdobas (C$/NIO). Hydrafacial, depilación láser, manicura y más.{% endblock %}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{ request.url_root }}">
+  <!-- Color de la barra del navegador móvil (tema oscuro del sitio). -->
+  <meta name="theme-color" content="#1a1225">
+  <!-- Indica preferencia de esquema de color oscuro. -->
+  <meta name="color-scheme" content="dark">
+
+  <!-- Open Graph básico para compartir en redes sociales. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% block og_title %}Beauty — Belleza en Managua, Nicaragua{% endblock %}">
+  <meta property="og:description" content="Tratamientos reales del mercado nicaragüense. Precios en Córdobas (NIO). Reservá tu cita online.">
+  <meta property="og:locale" content="es_NI">
+  <meta property="og:url" content="{{ request.url_root }}">
+  <meta property="og:image" content="{{ url_for('static', filename='images/hero-beauty.png') }}">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Título de pestaña (bloque sobreescribible). -->
+  <title>{% block title %}Beauty — Managua, Nicaragua{% endblock %}</title>
+
+  <!-- Favicon local para evitar 404 en la pestaña y mejorar la identidad visual. -->
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/hero-beauty.png') }}">
+
+  <!-- Preconnect acelera la descarga de Google Fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Cormorant Garamond (display) + Outfit (cuerpo): tipografía expresiva, no genérica. -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Hoja de estilos principal del diseño buttery-smooth. -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Hook para CSS/JS extra de páginas hijas. -->
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- Enlace de accesibilidad: salta al contenido principal con teclado. -->
+  <a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
+
+  <!-- Contenido específico de cada vista (index, login, registro). -->
+  {% block body %}{% endblock %}
+
+  <a class="whatsapp-float" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Chatear por WhatsApp de Beauty Nicaragua">
+    <span aria-hidden="true">💬</span>
+    <span>WhatsApp</span>
+  </a>
+
+  <!-- Socket.IO cliente (CDN) — defer no bloquea el parseo del HTML. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js" defer></script>
+  <!-- Three.js para el renderizado 3D interactivo del hero/experiencia. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <!-- Lógica general: nav, reveal, scrolltelling, contadores. -->
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  <!-- Escena 3D (esfera/partículas interactivas). -->
+  <script src="{{ url_for('static', filename='js/scene3d.js') }}" defer></script>
+  <!-- Scripts adicionales por página (chat, validación). -->
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

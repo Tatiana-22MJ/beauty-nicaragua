@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Error del servidor — Beauty Nicaragua{% endblock %}
+{% block body %}
+<main class="auth-page" id="contenido-principal">
+  <div class="auth-card reveal visible">
+    <p class="section-label">500</p>
+    <h1>Algo salió mal</h1>
+    <p>Registramos el error. Probá de nuevo en unos minutos.</p>
+    <p style="margin-top:1.5rem"><a class="btn btn-primary" href="{{ url_for('index') }}">Volver al inicio</a></p>
+  </div>
+</main>
+{% endblock %}

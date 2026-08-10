@@ -1,0 +1,25 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d4a5d4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#grad1)"/>
+  <!-- Cabeza -->
+  <circle cx="200" cy="120" r="50" fill="#fdb4b4"/>
+  <!-- Cabello -->
+  <path d="M 150 100 Q 150 60 200 60 Q 250 60 250 100" fill="#8b4513" stroke="#654321" stroke-width="2"/>
+  <!-- Cabello largo -->
+  <path d="M 160 100 Q 150 150 160 180" fill="none" stroke="#8b4513" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 240 100 Q 250 150 240 180" fill="none" stroke="#8b4513" stroke-width="8" stroke-linecap="round"/>
+  <!-- Tieras -->
+  <circle cx="280" cy="200" r="4" fill="#c0c0c0"/>
+  <path d="M 270 190 Q 280 200 290 180" fill="none" stroke="#808080" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="320" cy="200" r="4" fill="#c0c0c0"/>
+  <path d="M 310 190 Q 320 200 330 180" fill="none" stroke="#808080" stroke-width="3" stroke-linecap="round"/>
+  <!-- Texto -->
+  <text x="200" y="330" font-size="24" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial">
+    CORTE & PEINADO
+  </text>
+</svg>

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Mi Perfil — Beauty Nicaragua{% endblock %}
+{% block body %}
+<header class="site-header" role="banner">
+  <nav class="site-nav" aria-label="Navegación principal">
+    <div class="container nav-inner">
+      <a href="{{ url_for('index') }}" class="logo">Beauty<span aria-hidden="true">.</span></a>
+      <ul class="nav-menu" role="list">
+        <li><a href="{{ url_for('account.dashboard') }}">Mi cuenta</a></li>
+        <li><a href="{{ url_for('logout') }}" class="nav-btn nav-btn-outline">Salir</a></li>
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<main id="contenido-principal" class="auth-page">
+  <div class="auth-card reveal">
+    <header class="auth-header">
+      <p class="section-label">Configuración de cuenta</p>
+      <h1>Mi Perfil</h1>
+      <p>Actualizá tus datos personales para agilizar tus reservas en Managua.</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages" role="status" aria-live="polite">
+        {% for category, message in messages %}
+        <p class="flash flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="auth-form" method="post" action="{{ url_for('account.profile') }}" id="profileForm" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      
+      <div class="form-group">
+        <label for="full_name">Nombre completo</label>
+        <input type="text" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ user.full_name }}">
+        <span class="field-error" id="full_name-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required value="{{ user.email }}">
+        <span class="field-error" id="email-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Teléfono</label>
+        <input type="tel" id="phone" name="phone" required placeholder="+505 8877 2117" value="{{ user.phone }}">
+        <span class="field-error" id="phone-error"></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Guardar Cambios</button>
+    </form>
+
+    <div class="booking-actions" style="margin-top: 2rem; display: flex; justify-content: center;">
+      <a href="{{ url_for('account.dashboard') }}" class="btn btn-ghost">⬅️ Volver a mi cuenta</a>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/validation.js') }}" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const profileForm = document.getElementById("profileForm");
+    if (profileForm && window.BeautyValidation) {
+      window.BeautyValidation.attachForm(profileForm, {
+        full_name: { required: true, minLength: 2, message: "Nombre: mínimo 2 caracteres." },
+        email: { required: true, type: "email", message: "Introduce un email válido." },
+        phone: { required: true, type: "phone", message: "Teléfono no válido (ej. +505…)." }
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Admin · Chats — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header"><h1>Conversaciones Bella</h1></header>
+    {% for sid, msgs in threads.items() %}
+    <article class="admin-card">
+      <h3>Sesión {{ sid[:10] }}… {% if msgs[0].user_id and users.get(msgs[0].user_id) %}· {{ users[msgs[0].user_id].full_name }}{% endif %}</h3>
+      <div class="admin-chat-thread">
+        {% for m in msgs %}
+        <p class="chat-line chat-line-{{ m.sender }}"><strong>{{ m.sender }}:</strong> {{ m.content }}</p>
+        {% endfor %}
+      </div>
+    </article>
+    {% else %}
+    <p>Sin mensajes todavía.</p>
+    {% endfor %}
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Privacidad — Beauty Nicaragua{% endblock %}
+{% block body %}
+<main class="legal-page" id="contenido-principal">
+  <div class="container legal-inner reveal visible">
+    <p class="section-label">Legal</p>
+    <h1>Política de privacidad</h1>
+    <p>Beauty Nicaragua (Managua) trata tus datos con finalidad de gestión de citas, chat de soporte y comunicación comercial solicitada.</p>
+    <h2>Datos que recopilamos</h2>
+    <ul>
+      <li>Identificación: nombre, usuario, email, teléfono (+505).</li>
+      <li>Reservas: servicio/pack, fecha, hora, mensajes y comprobantes de transferencia.</li>
+      <li>Chat: contenido de mensajes con Bella (solo usuarias autenticadas).</li>
+    </ul>
+    <h2>Base y uso</h2>
+    <p>Usamos los datos para confirmar citas, prevenir fraude, mejorar el servicio y cumplir obligaciones legales. No vendemos tu información.</p>
+    <h2>Conservación</h2>
+    <p>Conservamos citas e historial el tiempo necesario para la operación del salón y requisitos contables.</p>
+    <h2>Tus derechos</h2>
+    <p>Podés solicitar acceso, corrección o eliminación escribiendo a <a href="mailto:info@beauty-nicaragua.com">info@beauty-nicaragua.com</a> o por WhatsApp.</p>
+    <p><a href="{{ url_for('index') }}">← Volver</a></p>
+  </div>
+</main>
+{% endblock %}

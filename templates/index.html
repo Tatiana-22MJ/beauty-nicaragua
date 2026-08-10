@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+{# index.html — Landing completa Beauty Nicaragua: hero, scrolltelling, servicios NIO, 3D, chat auth #}
+
+{% block body %}
+{# ─── HEADER / NAV ─── #}
+<header class="site-header" role="banner">
+  <nav class="site-nav" aria-label="Navegación principal">
+    <div class="container nav-inner">
+      {# Logo = señal de marca hero-level también en nav #}
+      <a href="{{ url_for('index') }}" class="logo" aria-label="Beauty Nicaragua — Inicio">
+        Beauty<span aria-hidden="true">.</span>
+      </a>
+
+      {# Botón hamburguesa (móvil) #}
+      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navMenu" aria-label="Abrir menú">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+
+      <ul class="nav-menu" id="navMenu" role="list">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#experiencia">Experiencia</a></li>
+        <li><a href="#servicios">Servicios</a></li>
+        <li><a href="#galeria">Galería</a></li>
+        <li><a href="#nosotros">Nosotros</a></li>
+        <li><a href="#reservar">Reservar</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        {% if current_user.is_authenticated %}
+        <li class="nav-auth"><span class="nav-user">Hola, {{ current_user.full_name.split()[0] }}</span></li>
+        <li><a href="{{ url_for('account.dashboard') }}">Mi cuenta</a></li>
+        {% if current_user.is_admin %}
+        <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        {% endif %}
+        <li><a href="{{ url_for('logout') }}" class="nav-btn nav-btn-outline">Salir</a></li>
+        {% else %}
+        <li><a href="{{ url_for('login') }}" class="nav-btn nav-btn-outline">Entrar</a></li>
+        <li><a href="{{ url_for('register') }}" class="nav-btn nav-btn-fill">Registrarse</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<main id="contenido-principal">
+
+  {# ═══ HERO — una sola composición, marca dominante, full-bleed visual ═══ #}
+  <section class="hero section-dark" id="inicio" aria-labelledby="hero-title">
+    {# Orbes de atmósfera (gradientes animados, no contenido secundario) #}
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+      <div class="hero-orb hero-orb-3"></div>
+    </div>
+    <div class="container hero-grid">
+      <div class="hero-content reveal">
+        {# Marca como señal principal del primer viewport #}
+        <p class="brand-hero" aria-label="Beauty Nicaragua">Beauty<span>.</span></p>
+        <p class="section-label">Managua · Precios en {{ currency_symbol }} ({{ currency_code }})</p>
+        <h1 id="hero-title">Tu belleza en el <em>corazón</em> de Nicaragua</h1>
+        <p class="hero-lead">
+          Tratamientos reales del mercado local — Hydrafacial, láser, spa y más —
+          con precios transparentes en córdobas.
+        </p>
+        <div class="hero-actions">
+          <a href="#reservar" class="btn btn-primary">Reservar Cita</a>
+          <a href="#servicios" class="btn btn-ghost">Ver Servicios</a>
+        </div>
+        <div class="hero-metrics" aria-label="Indicadores principales">
+          <div class="hero-metric">
+            <strong>24 h</strong>
+            <span>Respuesta rápida</span>
+          </div>
+          <div class="hero-metric">
+            <strong>C$</strong>
+            <span>Precios claros</span>
+          </div>
+          <div class="hero-metric">
+            <strong>7 días</strong>
+            <span>Atención local</span>
+          </div>
+        </div>
+      </div>
+      {# Imagen hero local (no Unsplash roto) + canvas 3D superpuesto sutil #}
+      <div class="hero-stage reveal reveal-delay-2">
+        <figure class="hero-visual">
+          <img src="{{ url_for('static', filename='images/hero-beauty.png') }}"
+               alt="Experiencia Beauty en Managua, Nicaragua"
+               width="600" height="750" loading="eager" fetchpriority="high">
+        </figure>
+        {# Lienzo Three.js: renderizado 3D interactivo (mouse/touch) #}
+        <canvas id="scene3d" class="hero-3d" aria-label="Experiencia 3D interactiva Beauty"></canvas>
+      </div>
+    </div>
+    {# Indicador de scrolltelling #}
+    <a href="#experiencia" class="scroll-cue" aria-label="Continuar la historia">
+      <span></span> Deslizá para descubrir
+    </a>
+  </section>
+
+  {# ═══ SCROLLTELLING — narración con scroll (sticky + paneles) ═══ #}
+  <section class="scrolltell section-alt" id="experiencia" aria-labelledby="scrolltell-title">
+    <div class="scrolltell-sticky">
+      <div class="container scrolltell-layout">
+        <header class="scrolltell-intro reveal">
+          <p class="section-label">Tu recorrido</p>
+          <h2 id="scrolltell-title">La experiencia Beauty</h2>
+          <p>Una historia en tres actos: llegás, te cuidamos, salís renovada.</p>
+        </header>
+        {# Panel visual que cambia según el capítulo activo (JS) #}
+        <div class="scrolltell-stage" id="scrolltellStage" aria-live="polite">
+          <img id="scrolltellImage"
+               src="{{ url_for('static', filename='images/salon-interior.png') }}"
+               alt="Interior del salón Beauty Managua"
+               width="720" height="900" loading="lazy">
+          <div class="scrolltell-caption" id="scrolltellCaption">
+            <span class="scrolltell-step">01</span>
+            <h3>Bienvenida en Managua</h3>
+            <p>Ambiente premium inspirado en spas médicos de Nicaragua.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {# Capítulos que disparan el cambio al entrar en viewport #}
+    <div class="scrolltell-chapters" id="scrolltellChapters">
+      <article class="scrolltell-chapter" data-step="01"
+               data-img="{{ url_for('static', filename='images/salon-interior.png') }}"
+               data-title="Bienvenida en Managua"
+               data-text="Ambiente premium inspirado en spas médicos de Nicaragua.">
+        <h3 class="visually-hidden">Capítulo 1</h3>
+      </article>
+      <article class="scrolltell-chapter" data-step="02"
+               data-img="{{ url_for('static', filename='images/services/tratamiento-facial.png') }}"
+               data-title="Tratamiento a tu medida"
+               data-text="Hydrafacial, láser, color o spa: protocolo personalizado en córdobas.">
+        <h3 class="visually-hidden">Capítulo 2</h3>
+      </article>
+      <article class="scrolltell-chapter" data-step="03"
+               data-img="{{ url_for('static', filename='images/services/spa-bienestar.png') }}"
+               data-title="Salís renovada"
+               data-text="Resultados naturales, seguimiento y la calidez del Caribe.">
+        <h3 class="visually-hidden">Capítulo 3</h3>
+      </article>
+    </div>
+  </section>
+
+  {# ═══ BENEFICIOS ═══ #}
+  <section class="benefits section-dark" id="beneficios" aria-label="Beneficios">
+    <div class="container benefits-grid">
+      <article class="benefit-card reveal">
+        <span class="benefit-icon" aria-hidden="true">🇳🇮</span>
+        <h3>Hecho para Nicaragua</h3>
+        <p>Precios en {{ currency_symbol }} y tratamientos alineados al mercado de Managua.</p>
+      </article>
+      <article class="benefit-card reveal reveal-delay-1">
+        <span class="benefit-icon" aria-hidden="true">👩‍🎨</span>
+        <h3>Profesionales Expertas</h3>
+        <p>Equipo certificado con experiencia en estética y spa médico.</p>
+      </article>
+      <article class="benefit-card reveal reveal-delay-2">
+        <span class="benefit-icon" aria-hidden="true">💎</span>
+        <h3>Experiencia Premium</h3>
+        <p>Animaciones fluidas, recorrido narrativo y detalle en cada visita.</p>
+      </article>
+      <article class="benefit-card reveal reveal-delay-3">
+        <span class="benefit-icon" aria-hidden="true">💬</span>
+        <h3>Chat en tiempo real</h3>
+        <p>Bella responde al instante — exclusivo para usuarias registradas.</p>
+      </article>
+    </div>
+  </section>
+
+  {# ═══ SERVICIOS — precios NIO, imágenes locales ═══ #}
+  <section class="services section-alt" id="servicios" aria-labelledby="services-title">
+    <div class="container">
+      <header class="section-header reveal">
+        <p class="section-label">Catálogo local</p>
+        <h2 id="services-title">Nuestros Servicios</h2>
+        <p>Tratamientos inspirados en clínicas y spas de Nicaragua. Precios desde en {{ currency_code }}.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </header>
+
+      <div class="services-grid" role="list">
+        {% for service in services %}
+        <article class="service-card reveal" role="listitem" style="--delay: {{ loop.index0 * 0.08 }}s">
+          <figure class="service-image">
+            <img src="{{ service.image_url }}"
+                 alt="{{ service.name }} — Beauty Managua"
+                 width="400" height="260" loading="lazy"
+                 onerror="this.src='{{ url_for('static', filename='images/salon-interior.png') }}'">
+          </figure>
+          <div class="service-body">
+            <span class="service-icon" aria-hidden="true">{{ service.icon }}</span>
+            <h3>{{ service.name }}</h3>
+            <p>{{ service.description }}</p>
+            {# Filtro |nio formatea C$ 1,800 #}
+            <data class="service-price" value="{{ service.price }}">
+              {% if service.quote_only %}Desde {{ service.price|nio }} · Cotizar
+              {% else %}Desde {{ service.price|nio }}{% endif %}
+            </data>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# ═══ PACKS ═══ #}
+  <section class="packages section-dark" id="packs" aria-labelledby="packs-title">
+    <div class="container">
+      <header class="section-header reveal">
+        <p class="section-label">Combos Managua</p>
+        <h2 id="packs-title">Packs especiales</h2>
+        <p>Paquetes al estilo del mercado local (spa lujo ~C$2,100 y más).</p>
+        <div class="divider" aria-hidden="true"></div>
+      </header>
+      <div class="services-grid" role="list">
+        {% for pack in packages %}
+        <article class="service-card reveal" role="listitem">
+          <figure class="service-image">
+            <img src="{{ pack.image_url }}" alt="{{ pack.name }}" width="400" height="260" loading="lazy"
+                 onerror="this.src='{{ url_for('static', filename='images/salon-interior.png') }}'">
+          </figure>
+          <div class="service-body">
+            <h3>{{ pack.name }}</h3>
+            <p>{{ pack.description }}</p>
+            <p class="muted">Incluye: {{ pack.includes }}</p>
+            <data class="service-price" value="{{ pack.price }}">{{ pack.price|nio }}</data>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# ═══ GALERÍA ═══ #}
+  <section class="gallery section-dark" id="galeria" aria-labelledby="gallery-title">
+    <div class="container">
+      <header class="section-header reveal">
+        <p class="section-label">Inspiración</p>
+        <h2 id="gallery-title">Galería de Trabajos</h2>
+        <p>Imágenes reales de cada tratamiento en nuestra plataforma.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </header>
+
+      <div class="gallery-grid">
+        {% for service in services %}
+        <figure class="gallery-item reveal" style="--delay: {{ loop.index0 * 0.06 }}s"
+                data-full="{{ service.image_url }}" tabindex="0" role="button" aria-label="Abrir imagen de {{ service.name }}">
+          <img src="{{ service.image_url }}"
+               alt="Galería — {{ service.name }}"
+               width="400" height="400" loading="lazy"
+               onerror="this.src='{{ url_for('static', filename='images/hero-beauty.png') }}'">
+          <figcaption>{{ service.name }}</figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="faq section-alt" id="faq" aria-labelledby="faq-title">
+    <div class="container">
+      <header class="section-header reveal">
+        <p class="section-label">Preguntas frecuentes</p>
+        <h2 id="faq-title">Todo lo que necesitás saber</h2>
+        <div class="divider" aria-hidden="true"></div>
+      </header>
+
+      <div class="faq-list">
+        <article class="faq-item reveal">
+          <button class="faq-question" type="button" aria-expanded="false">
+            ¿Necesito una cuenta para reservar?
+          </button>
+          <div class="faq-answer">
+            <p>Sí. La reserva queda vinculada a tu perfil para que puedas gestionar tu cita, pagos y reprogramación de forma clara.</p>
+          </div>
+        </article>
+        <article class="faq-item reveal">
+          <button class="faq-question" type="button" aria-expanded="false">
+            ¿Cómo funciona el anticipo por transferencia?
+          </button>
+          <div class="faq-answer">
+            <p>Se calcula según el porcentaje indicado del servicio. Después subís tu comprobante desde tu cuenta y te confirmamos rápidamente.</p>
+          </div>
+        </article>
+        <article class="faq-item reveal">
+          <button class="faq-question" type="button" aria-expanded="false">
+            ¿Puedo reprogramar o cancelar mi cita?
+          </button>
+          <div class="faq-answer">
+            <p>Claro. Desde tu perfil puedes reprogramar o cancelar la cita, según el estado en que se encuentre la solicitud.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="location section-dark" id="contacto" aria-labelledby="location-title">
+    <div class="container location-grid">
+      <div class="location-copy reveal">
+        <p class="section-label">Encuéntranos</p>
+        <h2 id="location-title">Estamos en Managua</h2>
+        <p>Ubicación central para una atención rápida y cercana. Visita nuestras instalaciones o reserva online y te guiamos paso a paso.</p>
+        <ul class="location-meta">
+          <li>Residencial Bolonia, Managua, Nicaragua</li>
+          <li><a href="tel:+50576721749">+505 7672 1749</a></li>
+          <li><a href="mailto:info@beauty-nicaragua.com">info@beauty-nicaragua.com</a></li>
+        </ul>
+      </div>
+      <div class="location-map reveal reveal-delay-1">
+        <iframe
+          title="Mapa de Beauty Nicaragua"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps?q=Bolonia%2C%20Managua%2C%20Nicaragua&z=14&output=embed">
+        </iframe>
+      </div>
+    </div>
+  </section>
+
+  {# ═══ SOBRE NOSOTROS ═══ #}
+  <section class="about section-alt" id="nosotros" aria-labelledby="about-title">
+    <div class="container about-grid">
+      <figure class="about-visual reveal">
+        <img src="{{ url_for('static', filename='images/salon-interior.png') }}"
+             alt="Interior del salón Beauty en Managua"
+             width="560" height="700" loading="lazy">
+      </figure>
+
+      <div class="about-text reveal reveal-delay-2">
+        <p class="section-label">Nuestra historia</p>
+        <h2 id="about-title">Sobre Nosotros</h2>
+        <p>{{ info.get('about_text_1', '') }}</p>
+        <p>{{ info.get('about_text_2', '') }}</p>
+
+        <dl class="about-stats">
+          <div class="stat">
+            <dt class="stat-number">{{ info.get('years_experience', '12+') }}</dt>
+            <dd class="stat-label">Años de experiencia</dd>
+          </div>
+          <div class="stat">
+            <dt class="stat-number">{{ info.get('happy_clients', '5K+') }}</dt>
+            <dd class="stat-label">Clientas felices</dd>
+          </div>
+          <div class="stat">
+            <dt class="stat-number">{{ info.get('professionals', '10') }}</dt>
+            <dd class="stat-label">Profesionales</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  {# ═══ TESTIMONIOS localizados ═══ #}
+  <section class="testimonials section-dark" id="testimonios" aria-labelledby="testimonials-title">
+    <div class="container">
+      <header class="section-header reveal">
+        <p class="section-label">Opiniones</p>
+        <h2 id="testimonials-title">Lo que dicen nuestras clientas</h2>
+        <div class="divider" aria-hidden="true"></div>
+      </header>
+
+      <div class="testimonials-grid">
+        <blockquote class="testimonial-card reveal">
+          <p>"El Hydrafacial en Managua me dejó la piel luminosa. Precios claros en córdobas y trato excelente."</p>
+          <footer>— María G. · Bolonia</footer>
+        </blockquote>
+        <blockquote class="testimonial-card reveal reveal-delay-1">
+          <p>"La depilación láser fue cómoda y profesional. Reservé online y me confirmaron por WhatsApp."</p>
+          <footer>— Laura P. · Las Colinas</footer>
+        </blockquote>
+        <blockquote class="testimonial-card reveal reveal-delay-2">
+          <p>"Manicura y spa perfectos para el clima. Bella en el chat me orientó con los precios en C$."</p>
+          <footer>— Carmen R. · Plaza Las Cumbres</footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  {# ═══ RESERVAR ═══ #}
+  <section class="booking section-alt" id="reservar" aria-labelledby="booking-title">
+    <div class="container booking-wrapper">
+      <header class="section-header reveal">
+        <p class="section-label">Agenda tu visita</p>
+        <h2 id="booking-title">Reserva tu Cita</h2>
+        <p>Completá el formulario — te confirmamos en menos de 24 horas (Managua).</p>
+        <div class="divider" aria-hidden="true"></div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages" role="status" aria-live="polite">
+          {% for category, message in messages %}
+          <p class="flash flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      <form class="booking-form reveal" method="post" action="{{ url_for('reservar') }}" id="bookingForm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="full_name">Nombre completo</label>
+            <input type="text" id="full_name" name="full_name" required minlength="2" maxlength="120"
+                   autocomplete="name" placeholder="Tu nombre"
+                   value="{{ current_user.full_name if current_user.is_authenticated else '' }}">
+            <span class="field-error" id="full_name-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required autocomplete="email" placeholder="tu@email.com"
+                   value="{{ current_user.email if current_user.is_authenticated else '' }}">
+            <span class="field-error" id="email-error"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="phone">Teléfono</label>
+            <input type="tel" id="phone" name="phone" required autocomplete="tel" placeholder="+505 8877 2117"
+                   pattern="^\+?[\d\s\-()]{8,20}$"
+                   value="{{ current_user.phone if current_user.is_authenticated else '' }}">
+            <span class="field-error" id="phone-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="service_id">Servicio</label>
+            <select id="service_id" name="service_id">
+              <option value="">— o elegí un pack abajo —</option>
+              {% for service in services %}
+              <option value="{{ service.id }}">{{ service.name }} — {% if service.quote_only %}cotizar desde {% endif %}{{ service.price|nio }}</option>
+              {% endfor %}
+            </select>
+            <span class="field-error" id="service_id-error"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="package_id">Pack (opcional)</label>
+            <select id="package_id" name="package_id">
+              <option value="">Sin pack</option>
+              {% for pack in packages %}
+              <option value="{{ pack.id }}">{{ pack.name }} — {{ pack.price|nio }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="preferred_date">Fecha</label>
+            <input type="date" id="preferred_date" name="preferred_date" required>
+            <span class="field-error" id="preferred_date-error"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="preferred_time">Horario disponible</label>
+            <select id="preferred_time" name="preferred_time" required>
+              <option value="" disabled selected>Elegí primero la fecha</option>
+            </select>
+            <span class="field-error" id="preferred_time-error"></span>
+          </div>
+          <div class="form-group form-group-full">
+            <label for="message">Mensaje <span class="optional">(opcional)</span></label>
+            <textarea id="message" name="message" rows="3" maxlength="500" placeholder="Contanos qué necesitás..."></textarea>
+          </div>
+        </div>
+
+        <label class="checkbox-label">
+          <input type="checkbox" name="want_deposit" checked>
+          Calcular anticipo sugerido ({{ "%.0f"|format(30) }}%) para transferencia bancaria
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-full">Enviar Solicitud</button>
+      </form>
+    </div>
+  </section>
+
+  {# CTA cuenta — requisito para chat #}
+  {% if not current_user.is_authenticated %}
+  <section class="account-cta section-dark" id="cuenta" aria-labelledby="account-title">
+    <div class="container account-cta-inner reveal">
+      <div>
+        <p class="section-label">Únete a Beauty</p>
+        <h2 id="account-title">Creá tu cuenta gratuita</h2>
+        <p>Registrate para reservar más rápido y chatear con Bella en tiempo real (solo usuarias autenticadas).</p>
+      </div>
+      <div class="account-cta-actions">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">Registrarse</a>
+        <a href="{{ url_for('login') }}" class="btn btn-ghost">Ya tengo cuenta</a>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+</main>
+
+{# ═══ FOOTER ═══ #}
+<footer class="site-footer section-alt" id="contacto" role="contentinfo">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="{{ url_for('index') }}" class="logo">Beauty<span aria-hidden="true">.</span></a>
+      <p>Salón y spa en Managua. Belleza con precios en córdobas ({{ currency_code }}).</p>
+    </div>
+
+    <address class="footer-col">
+      <h2>Contacto</h2>
+      <ul role="list">
+        <li>{{ info.get('address', 'Residencial Bolonia, Managua, Nicaragua') }}</li>
+        <li><a href="tel:+50576721749">{{ info.get('phone', '+505 7672 1749') }}</a></li>
+        <li><a href="mailto:{{ info.get('email', 'info@beauty-nicaragua.com') }}">{{ info.get('email', 'info@beauty-nicaragua.com') }}</a></li>
+      </ul>
+    </address>
+
+    <div class="footer-col">
+      <h2>Horario</h2>
+      <ul role="list">
+        <li>{{ info.get('hours_weekdays', 'Lun–Vie: 9:00 AM – 7:00 PM') }}</li>
+        <li>{{ info.get('hours_saturday', 'Sáb: 10:00 AM – 5:00 PM') }}</li>
+        <li>{{ info.get('hours_sunday', 'Dom: Cerrado') }}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <small>&copy; {{ current_year }} Beauty Nicaragua. Todos los derechos reservados.</small>
+    <nav class="social-links" aria-label="Redes sociales">
+     <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Ig</a>
+     <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">Fb</a>
+     <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">Wa</a>
+    </nav>
+  </div>
+</footer>
+
+{# ═══ CHAT — restringido a autenticados ═══ #}
+<aside class="chat-widget" id="chatWidget"
+       data-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}"
+       data-login-url="{{ url_for('login') }}"
+       data-register-url="{{ url_for('register') }}"
+       aria-label="Chat con asistente virtual Bella">
+  <button type="button" class="chat-toggle" id="chatToggle" aria-expanded="false" aria-controls="chatPanel">
+    <span class="chat-toggle-icon" aria-hidden="true">💬</span>
+    <span class="chat-toggle-label">Bella</span>
+    <span class="chat-pulse" aria-hidden="true"></span>
+  </button>
+
+  <div class="chat-panel" id="chatPanel" hidden>
+    <header class="chat-header">
+      <div>
+        <strong>Bella</strong>
+        <span class="chat-status"><span class="status-dot"></span>
+          {% if current_user.is_authenticated %}En línea{% else %}Requiere cuenta{% endif %}
+        </span>
+      </div>
+      <button type="button" class="chat-close" id="chatClose" aria-label="Cerrar chat">&times;</button>
+    </header>
+    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions">
+      {% if current_user.is_authenticated %}
+      <div class="chat-msg chat-msg-bot">
+        <p>¡Hola{{ ' ' + current_user.full_name.split()[0] if current_user.is_authenticated else '' }}! Soy Bella 💖 Preguntame por precios en C$, Hydrafacial, láser, horarios o reservas en Managua.</p>
+      </div>
+      {% else %}
+      <div class="chat-msg chat-msg-bot">
+        <p>El chat en tiempo real es exclusivo para usuarias registradas. <a href="{{ url_for('login') }}">Iniciá sesión</a> o <a href="{{ url_for('register') }}">registrate</a> para hablar conmigo.</p>
+      </div>
+      {% endif %}
+    </div>
+    {% if current_user.is_authenticated %}
+    <form class="chat-input-form" id="chatForm">
+      <input type="text" id="chatInput" placeholder="Escribí tu mensaje..." maxlength="500" autocomplete="off" required>
+      <button type="submit" class="chat-send" aria-label="Enviar mensaje">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </form>
+    {% else %}
+    <div class="chat-auth-gate" id="chatAuthGate">
+      <a href="{{ url_for('login') }}" class="btn btn-primary btn-full">Iniciar sesión</a>
+      <a href="{{ url_for('register') }}" class="btn btn-ghost btn-full">Crear cuenta</a>
+    </div>
+    {% endif %}
+  </div>
+</aside>
+
+{# Datos estructurados SEO localizados a Nicaragua #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BeautySalon",
+  "name": "Beauty Nicaragua",
+  "description": "Salón y spa en Managua con precios en Córdobas (NIO)",
+  "url": "{{ request.url_root }}",
+  "telephone": "{{ info.get('phone', '') }}",
+  "email": "{{ info.get('email', '') }}",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Residencial Bolonia",
+    "addressLocality": "Managua",
+    "addressCountry": "NI"
+  },
+  "priceRange": "C$–C$$",
+  "currenciesAccepted": "NIO"
+}
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+{# validation.js se carga también en index para el formulario de reserva #}
+<script src="{{ url_for('static', filename='js/validation.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/slots.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
+{% endblock %}

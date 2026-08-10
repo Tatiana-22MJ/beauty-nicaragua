@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Admin — Beauty Nicaragua{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header">
+      <h1>Panel administrativo</h1>
+      <p>Operación del salón en Managua · precios NIO</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+        <p class="flash flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="admin-stats">
+      <article><strong>{{ stats.bookings_pending }}</strong><span>Pendientes</span></article>
+      <article><strong>{{ stats.bookings_confirmed }}</strong><span>Confirmadas</span></article>
+      <article><strong>{{ stats.payments_pending }}</strong><span>Pagos a validar</span></article>
+      <article><strong>{{ stats.services }}</strong><span>Servicios</span></article>
+      <article><strong>{{ stats.users }}</strong><span>Usuarias</span></article>
+      <article><strong>{{ stats.messages }}</strong><span>Msgs chat</span></article>
+    </div>
+
+    <h2 class="admin-subtitle">Citas recientes</h2>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr><th>#</th><th>Clienta</th><th>Servicio</th><th>Fecha</th><th>Estado</th><th>Pago</th></tr>
+        </thead>
+        <tbody>
+          {% for b in recent %}
+          <tr>
+            <td>{{ b.id }}</td>
+            <td>{{ b.full_name }}</td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.preferred_date }} {{ b.preferred_time }}</td>
+            <td><span class="badge badge-{{ b.status }}">{{ b.status }}</span></td>
+            <td>{{ b.payment_status }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">Sin citas aún.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+{% endblock %}

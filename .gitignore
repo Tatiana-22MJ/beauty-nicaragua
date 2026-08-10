@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+instance/*.db
+instance/*.db-journal
+.env
+.env.*
+.pytest_cache/
+.coverage
+coverage.xml
+.DS_Store
+Thumbs.db
+server.log
+compile.log

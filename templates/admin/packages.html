@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Admin · Packs — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header"><h1>Packs / combos</h1></header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <details class="admin-card" open>
+      <summary>Crear pack</summary>
+      <form method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="create">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre</label><input name="name" required></div>
+          <div class="form-group"><label>Precio C$</label><input name="price" type="number" required></div>
+        </div>
+        <div class="form-group"><label>Descripción</label><textarea name="description" rows="2" required></textarea></div>
+        <div class="form-group"><label>Incluye</label><input name="includes" placeholder="Masaje · Facial · ..."></div>
+        <div class="form-group"><label>URL imagen</label><input name="image_url"></div>
+        <div class="form-group"><label>Orden</label><input name="sort_order" type="number" value="10"></div>
+        <button class="btn btn-primary" type="submit">Crear</button>
+      </form>
+    </details>
+
+    {% for p in packages %}
+    <details class="admin-card">
+      <summary>{{ p.name }} — {{ p.price|nio }}</summary>
+      <form method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="package_id" value="{{ p.id }}">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre</label><input name="name" value="{{ p.name }}"></div>
+          <div class="form-group"><label>Precio</label><input name="price" type="number" value="{{ p.price|int }}"></div>
+        </div>
+        <div class="form-group"><label>Descripción</label><textarea name="description" rows="2">{{ p.description }}</textarea></div>
+        <div class="form-group"><label>Incluye</label><input name="includes" value="{{ p.includes }}"></div>
+        <div class="form-group"><label>URL imagen</label><input name="image_url" value="{{ p.image_url }}"></div>
+        <div class="form-group"><label>Orden</label><input name="sort_order" type="number" value="{{ p.sort_order }}"></div>
+        <label class="checkbox-label"><input type="checkbox" name="is_active" {% if p.is_active %}checked{% endif %}> Activo</label>
+        <button class="btn btn-primary" type="submit">Guardar</button>
+      </form>
+    </details>
+    {% endfor %}
+  </main>
+</div>
+{% endblock %}

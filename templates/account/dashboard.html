@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Mi cuenta — Beauty Nicaragua{% endblock %}
+{% block body %}
+<header class="site-header" role="banner">
+  <nav class="site-nav scrolled" aria-label="Navegación">
+    <div class="container nav-inner">
+      <a href="{{ url_for('index') }}" class="logo">Beauty<span>.</span></a>
+      <div class="nav-menu" style="display:flex;gap:1rem;align-items:center">
+        {% if current_user.is_admin %}<a href="{{ url_for('admin.dashboard') }}" class="nav-btn nav-btn-outline">Admin</a>{% endif %}
+        <a href="{{ url_for('logout') }}" class="nav-btn nav-btn-fill">Salir</a>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="account-page" id="contenido-principal">
+  <div class="container">
+    <header class="section-header reveal visible">
+      <p class="section-label">Área de clienta</p>
+      <h1>Hola, {{ current_user.full_name.split()[0] }}</h1>
+      <p>Gestioná tus citas, reprogramá y subí el comprobante de anticipo.</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages">{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}</div>
+      {% endif %}
+    {% endwith %}
+
+    <aside class="account-bank reveal visible">
+      <h2>Anticipo por transferencia</h2>
+      <p>{{ bank_holder }} · {{ bank_name }} · {{ bank_account }}</p>
+      <p>Luego subí el comprobante en la cita correspondiente.</p>
+      <div class="account-bank-actions">
+        <a class="btn btn-ghost" href="{{ wa_link }}" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="btn btn-primary" href="{{ url_for('index', _anchor='reservar') }}">Nueva cita</a>
+      </div>
+    </aside>
+
+    <section class="account-stats reveal visible" aria-label="Resumen de mi cuenta">
+      <article class="stat-card">
+        <span class="stat-label">Citas totales</span>
+        <strong>{{ stats.citas }}</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Pendientes</span>
+        <strong>{{ stats.pendientes }}</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Reprogramadas</span>
+        <strong>{{ stats.reprogramadas }}</strong>
+      </article>
+    </section>
+
+    {% if upcoming_booking %}
+    <section class="account-next reveal visible">
+      <p class="section-label">Próxima cita</p>
+      <h2>{{ upcoming_booking.title }}</h2>
+      <p>{{ upcoming_booking.preferred_date }} · {{ upcoming_booking.preferred_time }}</p>
+      <p class="muted">Estado: {{ upcoming_booking.status }} · Pago: {{ upcoming_booking.payment_status }}</p>
+    </section>
+    {% endif %}
+
+    <div class="account-list">
+      {% for b in bookings %}
+      <article class="account-card reveal visible">
+        <div>
+          <h3>{{ b.title }}</h3>
+          <p>{{ b.preferred_date }} · {{ b.preferred_time }}</p>
+          <p><span class="badge badge-{{ b.status }}">{{ b.status }}</span> · pago: {{ b.payment_status }} · anticipo {{ b.deposit_amount|nio }}</p>
+          {% if b.admin_notes %}<p class="muted">Nota: {{ b.admin_notes }}</p>{% endif %}
+        </div>
+        <div class="account-actions">
+          {% if b.status not in ['cancelled','completed'] %}
+          <a class="btn btn-ghost" href="{{ url_for('account.reschedule_booking', booking_id=b.id) }}">Reprogramar</a>
+          <form method="post" action="{{ url_for('account.cancel_booking', booking_id=b.id) }}" onsubmit="return confirm('¿Cancelar esta cita?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-ghost">Cancelar</button>
+          </form>
+          <form method="post" action="{{ url_for('account.upload_proof', booking_id=b.id) }}" enctype="multipart/form-data" class="proof-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="btn btn-primary btn-file">Comprobante
+              <input type="file" name="payment_proof" accept=".png,.jpg,.jpeg,.webp,.pdf" required onchange="this.form.submit()">
+            </label>
+          </form>
+          {% endif %}
+        </div>
+      </article>
+      {% else %}
+      <p class="muted">Todavía no tenés citas. <a href="{{ url_for('index', _anchor='reservar') }}">Reservá ahora</a>.</p>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+{% endblock %}

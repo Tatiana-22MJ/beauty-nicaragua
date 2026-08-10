@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Detalle de Cita #{{ booking.id }} — Beauty Nicaragua{% endblock %}
+{% block body %}
+<header class="site-header" role="banner">
+  <nav class="site-nav" aria-label="Navegación principal">
+    <div class="container nav-inner">
+      <a href="{{ url_for('index') }}" class="logo">Beauty<span aria-hidden="true">.</span></a>
+      <ul class="nav-menu" role="list">
+        <li><a href="{{ url_for('account.dashboard') }}">Mi cuenta</a></li>
+        <li><a href="{{ url_for('logout') }}" class="nav-btn nav-btn-outline">Salir</a></li>
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<main id="contenido-principal" class="auth-page">
+  <div class="auth-card reveal">
+    <header class="auth-header">
+      <p class="section-label">Detalles de la cita</p>
+      <h1>Cita #{{ booking.id }}</h1>
+      <p>Revisá la información de tu tratamiento y el estado de tu pago.</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages" role="status" aria-live="polite">
+        {% for category, message in messages %}
+        <p class="flash flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="booking-details-list">
+      <div class="detail-item">
+        <strong>Tratamiento:</strong>
+        <span>{{ booking.title }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>Fecha y Hora:</strong>
+        <span>{{ booking.preferred_date }} a las {{ booking.preferred_time }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>Estado de Cita:</strong>
+        <span class="badge badge-{{ booking.status }}">{{ booking.status.upper() }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>Estado de Pago:</strong>
+        <span class="badge badge-payment-{{ booking.payment_status }}">{{ booking.payment_status.upper() }}</span>
+      </div>
+      <div class="detail-item">
+        <strong>Anticipo Sugerido (30%):</strong>
+        <span>{{ booking.deposit_amount|nio }}</span>
+      </div>
+      {% if booking.admin_notes %}
+      <div class="detail-item detail-notes">
+        <strong>Notas de administración:</strong>
+        <p>{{ booking.admin_notes }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="booking-actions" style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;">
+      {% if booking.status in ('pending', 'confirmed', 'reschedule') %}
+        <a href="{{ url_for('account.reschedule_booking', booking_id=booking.id) }}" class="btn btn-ghost" style="text-align: center;">🔄 Solicitar Reprogramación</a>
+        
+        <form method="post" action="{{ url_for('account.cancel_booking', booking_id=booking.id) }}" onsubmit="return confirm('¿Seguro que querés cancelar esta cita?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="reason">Razón de la cancelación (opcional)</label>
+            <input type="text" id="reason" name="reason" placeholder="Ej. Cambio de planes">
+          </div>
+          <button type="submit" class="btn btn-outline btn-full" style="color: #e0569a; border-color: #e0569a;">❌ Cancelar Cita</button>
+        </form>
+      {% endif %}
+
+      {% if booking.payment_status == 'unpaid' %}
+        <div class="payment-upload-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+          <h3>💳 Pagar anticipo por Transferencia</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+            Por favor, transfiere el anticipo sugerido de <strong>{{ booking.deposit_amount|nio }}</strong> a nuestra cuenta:
+          </p>
+          <ul style="font-size: 0.9rem; margin-bottom: 1rem; list-style: none; padding: 0;">
+            <li><strong>Banco:</strong> BAC Credomatic</li>
+            <li><strong>Cuenta:</strong> XXXX-XXXX-XXXX-1234</li>
+            <li><strong>Beneficiario:</strong> Beauty Nicaragua S.A.</li>
+          </ul>
+          
+          <form method="post" action="{{ url_for('account.upload_proof', booking_id=booking.id) }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+              <label for="payment_proof">Subir comprobante (PNG, JPG, WEBP, PDF)</label>
+              <input type="file" id="payment_proof" name="payment_proof" accept="image/*,.pdf" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Subir Comprobante</button>
+          </form>
+        </div>
+      {% endif %}
+
+      <a href="{{ wa_link }}" class="btn btn-ghost" target="_blank" style="text-align: center; color: #25d366;">💬 Consultar por WhatsApp</a>
+      <a href="{{ url_for('account.dashboard') }}" class="btn btn-ghost" style="text-align: center;">⬅️ Volver a mis citas</a>
+    </div>
+  </div>
+</main>
+{% endblock %}

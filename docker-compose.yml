@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://beauty:beauty_pass@db:5432/beauty
+      - MAIL_ENABLED=0
+      - SECRET_KEY=dev-key-not-for-production
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    command: gunicorn --bind 0.0.0.0:5000 --reload app:app
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=beauty
+      - POSTGRES_PASSWORD=beauty_pass
+      - POSTGRES_DB=beauty
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

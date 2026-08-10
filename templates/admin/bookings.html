@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Admin · Citas — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header">
+      <h1>Citas</h1>
+      <form method="get" class="admin-filter">
+        <select name="status" onchange="this.form.submit()">
+          <option value="">Todas</option>
+          {% for s in ['pending','confirmed','reschedule','cancelled','completed'] %}
+          <option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    {% for b in bookings %}
+    <article class="admin-card">
+      <div>
+        <h3>#{{ b.id }} · {{ b.title }}</h3>
+        <p>{{ b.full_name }} · {{ b.email }} · {{ b.phone }}</p>
+        <p>{{ b.preferred_date }} {{ b.preferred_time }} · Anticipo {{ b.deposit_amount|nio }}</p>
+        <p>{{ b.message or 'Sin mensaje' }}{% if b.payment_proof %} · Comprobante: {{ b.payment_proof }}{% endif %}</p>
+      </div>
+      <form method="post" class="admin-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="booking_id" value="{{ b.id }}">
+        <label>Estado
+          <select name="status">
+            {% for s in ['pending','confirmed','reschedule','cancelled','completed'] %}
+            <option value="{{ s }}" {% if b.status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Pago
+          <select name="payment_status">
+            {% for s in ['unpaid','pending_transfer','paid'] %}
+            <option value="{{ s }}" {% if b.payment_status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Notas
+          <input type="text" name="admin_notes" value="{{ b.admin_notes }}" placeholder="Nota interna / para clienta">
+        </label>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </form>
+    </article>
+    {% else %}
+    <p>No hay citas con ese filtro.</p>
+    {% endfor %}
+  </main>
+</div>
+{% endblock %}
