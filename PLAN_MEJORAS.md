@@ -3,9 +3,9 @@
 > Auditoría técnica + investigación de mercado (salones en Nicaragua) + plan de integración con **Supabase**.
 > Fecha: octubre 2026 · Stack actual: Flask 3 + SQLAlchemy + Flask-Login + Flask-SocketIO + SQLite
 
-> ## ✅ ESTADO (octubre 2026): P0 y Supabase Fase 1 IMPLEMENTADOS
+> ## ✅ ESTADO (octubre 2026): P0, Supabase Fase 1 y P1 (producto) IMPLEMENTADOS
 >
-> Verificado con **61 tests pytest (100% pass)** + flake8 limpio + arranque verificado.
+> Verificado con **80 tests pytest (100% pass)** + flake8 (solo errores críticos) + arranque verificado contra Supabase.
 >
 > | # | Mejora | Estado |
 > |---|--------|--------|
@@ -21,10 +21,20 @@
 > | 10 | Stack actualizado: Flask 3.1, psycopg3, sin eventlet | ✅ `requirements.txt` |
 > | 12/14 | Timezone `America/Managua` en toda la agenda | ✅ `timeutils.py` |
 > | — | Ruta faltante `account.booking_detail` (rompía Mi cuenta) | ✅ `routes_account.py` |
-> | 21 | Suite de tests: 61 tests (validadores, agenda, auth, reservas, reset) | ✅ `tests/` |
+> | 21 | Suite de tests: **80 tests** (agenda, reseñas, CSV, healthz, recordatorios) | ✅ `tests/` |
 > | — | Guía de conexión + schema.sql + script de migración SQLite→Supabase | ✅ `SUPABASE_SETUP.md` |
+> | 11 | **Recordatorios WhatsApp 24 h** (Twilio + email, cron diario) | ✅ `reminders.py`, `scripts/send_reminders.py`, `.github/workflows/reminders.yml` |
+> | 12 | **Slots por duración** (`duration_minutes` en servicios/packs) | ✅ `availability.py`, `static/js/slots.js` |
+> | 17 | **Reseñas** (clienta reseña → admin aprueba → portada) | ✅ `routes_account.py`, `routes_admin.py`, `models.Review` |
+> | 16 | **Ficha de clienta + historial** en admin | ✅ `routes_admin.py`, `admin/client*.html` |
+> | 19 | **Paginación + export CSV** de citas | ✅ `routes_admin.py` |
+> | — | **Alembic** como única fuente de verdad del esquema (baseline + stamp) | ✅ `migrations/` |
+> | — | **Rol de BD de mínimos privilegios** `beauty_app` + policies RLS por tabla | ✅ `supabase/schema.sql` |
+> | — | **Backups diarios** de Postgres (pg_dump → Storage + artifact) | ✅ `.github/workflows/backup.yml` |
+> | — | **Healthcheck/Sentry/logging JSON** (`/healthz`) | ✅ `app.py`, `config.py` |
+> | — | **Deploy Railway** (`railway.json`, `.dockerignore`, `$PORT`) | ✅ `railway.json`, `Dockerfile` |
 >
-> **Pendiente (P1/P2):** recordatorios WhatsApp automáticos, slots por duración, link de pago, reseñas, CSV export.
+> **Pendiente:** link de pago (decidido postergar), SEO local (#18), modelo de personal (#20), background de notificaciones (#15).
 
 ---
 

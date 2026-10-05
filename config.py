@@ -98,6 +98,13 @@ class Config:
 
     DATABASE_URL = _raw_uri  # Alias legible de SQLALCHEMY_DATABASE_URI.
 
+    # --- Observabilidad --------------------------------------------------------
+    # SENTRY_DSN vacío = sin Sentry (dev). En producción: pega el DSN de tu
+    # proyecto Sentry (free tier) para capturar 500s y excepciones.
+    SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+    SENTRY_TRACES_SAMPLE_RATE = float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+    # LOG_FORMAT=json → logs en JSON por línea (ingesta en Railway / Sentry).
+
     # WhatsApp Business / contacto
     WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "50576721749")  # sin +
     WHATSAPP_DEFAULT_MSG = os.environ.get(

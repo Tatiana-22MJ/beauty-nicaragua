@@ -1,0 +1,27 @@
+# Entorno y datos: NUNCA dentro de la imagen
+.env
+.env.*
+!.env.example
+instance/
+backups/
+*.log
+*.db
+
+# Código/entornos que no hacen falta en producción
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
+.github/
+.claude/
+.cursor/
+.freebuff/
+tests/
+migrations/__pycache__/
+.git/
+.gitattributes
+*.md
+!README.md

@@ -24,3 +24,5 @@ email-validator==2.2.0
 # --- Servicios externos ---
 requests==2.32.3
 gunicorn==23.0.0
+# Observabilidad: solo envía datos si SENTRY_DSN está definido.
+sentry-sdk[flask]>=2.14.0,<3.0.0

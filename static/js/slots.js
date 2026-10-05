@@ -1,8 +1,19 @@
 /**
  * slots.js — Carga horarios libres desde /api/slots al cambiar la fecha.
+ * La agenda considera la duración del servicio/pack elegido (p.ej. 120 min
+ * de coloración bloquean dos huecos), por eso se reconsulta al cambiarlo.
  */
 (() => {
   "use strict";
+
+  function queryString(date) {
+    const params = new URLSearchParams({ date });
+    ["service_id", "package_id"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el.value) params.set(id, el.value);
+    });
+    return params.toString();
+  }
 
   function fillSlots(dateInput, timeSelect, preferred) {
     if (!dateInput || !timeSelect) return;
@@ -12,7 +23,7 @@
       return;
     }
     timeSelect.innerHTML = '<option value="">Cargando horarios…</option>';
-    fetch(`/api/slots?date=${encodeURIComponent(date)}`)
+    fetch(`/api/slots?${queryString(date)}`)
       .then((r) => r.json())
       .then((data) => {
         timeSelect.innerHTML = "";
@@ -44,7 +55,13 @@
     const timeSelect = document.getElementById("preferred_time");
     if (!dateInput || !timeSelect) return;
     const preferred = timeSelect.dataset.preferred || "";
-    dateInput.addEventListener("change", () => fillSlots(dateInput, timeSelect, ""));
+    const reload = () => fillSlots(dateInput, timeSelect, "");
+    dateInput.addEventListener("change", reload);
+    // Cambiar de servicio/pack altera la duración → reconsulta los horarios.
+    ["service_id", "package_id"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", reload);
+    });
     fillSlots(dateInput, timeSelect, preferred);
   }
 

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Admin · Reseñas — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header">
+      <h1>Reseñas</h1>
+      <p class="muted">{% if pending %}{{ pending }} pendiente(s) de revisión{% else %}Sin pendientes{% endif %}</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    {% for r in reviews %}
+    <article class="admin-card">
+      <div>
+        <h3>{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }} · {{ r.author }}</h3>
+        <p>{{ r.comment or 'Sin comentario' }}</p>
+        <p class="muted">
+          Cita #{{ r.booking_id }}{% if r.booking %} · {{ r.booking.title }} · {{ r.booking.preferred_date }}{% endif %}
+          · {{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }}
+          · <span class="badge badge-{{ 'confirmed' if r.is_approved else 'pending' }}">{{ 'publicada' if r.is_approved else 'pendiente' }}</span>
+        </p>
+      </div>
+      <form method="post" class="admin-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="review_id" value="{{ r.id }}">
+        {% if r.is_approved %}
+        <button type="submit" name="action" value="hide" class="btn btn-ghost">Ocultar</button>
+        {% else %}
+        <button type="submit" name="action" value="approve" class="btn btn-primary">Publicar</button>
+        {% endif %}
+        <button type="submit" name="action" value="delete" class="btn btn-ghost"
+                onclick="return confirm('¿Eliminar esta reseña?')">Eliminar</button>
+      </form>
+    </article>
+    {% else %}
+    <p>Todavía no hay reseñas.</p>
+    {% endfor %}
+  </main>
+</div>
+{% endblock %}

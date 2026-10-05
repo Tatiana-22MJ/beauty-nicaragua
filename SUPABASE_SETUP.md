@@ -95,12 +95,55 @@ Checklist:
 | `SESSION_COOKIE_SECURE` | `1` |
 | `TRUST_PROXY_HEADERS` | `1` (detrás de proxy) |
 | `RATELIMIT_STORAGE_URI` | `redis://...` (con >1 worker de gunicorn) |
+| `DATABASE_URL` | rol **`beauty_app`** (permisos mínimos), no `postgres` (ver §9) |
 
-Backups: el plan Free de Supabase no incluye backups automáticos — programa
-`pg_dump` (Dashboard → Database → Backups en planes Pro) o un GitHub Action cron.
+Backups: ver §10 (GitHub Action con `pg_dump` diario → Storage + artifact).
 
 ## 8. Fase 2 (opcional, más adelante)
 
 - **Supabase Auth**: reset de contraseña managed, magic links, Google OAuth.
 - **Realtime**: sustituir Flask-SocketIO en el chat.
 - **Edge Functions + pg_cron**: recordatorios WhatsApp programados sin servidor.
+
+## 9. Rol de BD de mínimos privilegios (`beauty_app`)
+
+La app **no** debe conectarse como `postgres`. El rol dedicado ya existe y es el
+que usa `DATABASE_URL` en `.env`:
+
+```sql
+create role beauty_app with login password '<clave_fuerte>';
+grant usage, create on schema public to beauty_app;
+grant select, insert, update, delete on all tables in schema public to beauty_app;
+grant usage, select on all sequences in schema public to beauty_app;
+alter default privileges for role postgres in schema public
+    grant select, insert, update, delete on tables to beauty_app;
+alter default privileges for role postgres in schema public
+    grant usage, select on sequences to beauty_app;
+```
+
+- En el **pooler** el tenant va en el usuario: `beauty_app.ndlvhagcilnyffuyfvbf@…pooler.supabase.com:5432`.
+- **RLS queda habilitada** en las 8 tablas y se crea una policy exclusiva por
+  tabla (`app_all … to beauty_app`, `using (true) with check (true)`) — el bloque
+  `do $$ … $$` al final de `supabase/schema.sql` la aplica. La Data API pública
+  (`anon`/`authenticated`) sigue sin ningún grant: no puede leer ni escribir.
+- `postgres` en Supabase **no es superuser**, por eso los `alter default privileges
+  for role beauty_app` se ejecutan *como* `beauty_app` (son sus propios defaults).
+- Rotar la clave: `alter role beauty_app with password '<nueva>';` y actualizar `.env`.
+
+## 10. Backups diarios
+
+Workflow `.github/workflows/backup.yml` (cron 03:00 UTC = 21:00 Managua):
+
+1. `pg_dump` con la imagen `postgres:17-alpine` (misma versión mayor que Supabase).
+2. Sube el `.sql.gz` al bucket privado **`backups`** de Supabase Storage.
+3. Conserva el artifact del runner por 14 días.
+
+Secrets de GitHub requeridos:
+
+| Secret | Valor |
+|---|---|
+| `BACKUP_DATABASE_URL` | URL del rol `postgres` (§2). **No** la de la app. |
+| `SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` (Service Role, nunca la `anon`) |
+
+Restaurar: `gunzip -c backup-FECHA.sql.gz | psql "$BACKUP_DATABASE_URL"`.

@@ -1,0 +1,57 @@
+name: Backup diario de Postgres (Supabase)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"     # 21:00 en Managua
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: pg_dump (Postgres 17, misma versión que Supabase)
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ]; then
+            echo "Falta el secret BACKUP_DATABASE_URL" >&2
+            exit 1
+          fi
+          mkdir -p backups
+          docker run --rm -e BACKUP_DATABASE_URL \
+            -v "$PWD/backups:/backups" postgres:17-alpine \
+            sh -c 'pg_dump "$BACKUP_DATABASE_URL" --no-owner --no-privileges | gzip > /backups/beauty-$(date +%F).sql.gz'
+          ls -lh backups
+
+      - name: Subir a Supabase Storage (bucket backups)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "Sin SUPABASE_URL/SECRET_KEY: se conserva solo el artifact."
+            exit 0
+          fi
+          FILE=$(ls backups/*.sql.gz | head -n 1)
+          NAME=$(basename "$FILE")
+          # Bucket privado (se crea si no existe).
+          curl -sf -X POST "$SUPABASE_URL/storage/v1/bucket" \
+            -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"id":"backups","name":"backups","public":false}' >/dev/null || true
+          curl -sf -X POST "$SUPABASE_URL/storage/v1/object/backups/$NAME" \
+            -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+            -H "Content-Type: application/gzip" \
+            --data-binary @"$FILE"
+          echo "Backup subido a Storage: backups/$NAME"
+
+      - name: Conservar artifact (14 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-backup
+          path: backups/*.sql.gz
+          retention-days: 14
+          if-no-files-found: error

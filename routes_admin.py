@@ -2,11 +2,15 @@
 # routes_admin.py — Panel administrativo (servicios, citas, chats, packs)
 # =============================================================================
 
+import csv
+import io
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
 from flask import (
     Blueprint,
+    Response,
     abort,
     current_app,
     flash,
@@ -19,7 +23,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from extensions import db
-from models import AuditLog, Booking, ChatMessage, Service, ServicePackage, User
+from models import AuditLog, Booking, ChatMessage, Review, Service, ServicePackage, User
 from notifications import notify_booking_status
 from supabase_storage import proof_signed_url
 from validators import parse_float, parse_int, validate_name
@@ -94,6 +98,28 @@ def _parse_service_form() -> tuple[dict, list[str]]:
     return fields, errors
 
 
+def _parse_pack_form() -> tuple[dict, list[str]]:
+    """Parsea el formulario de packs sin permitir 500s."""
+    errors: list[str] = []
+    name = request.form.get("name", "").strip()
+    price, price_error = parse_float(request.form.get("price"), "precio", minimum=0)
+    sort_order, sort_error = parse_int(request.form.get("sort_order"), "orden", minimum=0)
+    duration, duration_error = parse_int(
+        request.form.get("duration_minutes"), "duración (min)", minimum=15
+    )
+    errors.extend(e for e in (validate_name(name), price_error, sort_error, duration_error) if e)
+    fields = {
+        "name": name,
+        "description": request.form.get("description", "").strip(),
+        "includes": request.form.get("includes", "").strip(),
+        "price": price,
+        "image_url": request.form.get("image_url", "").strip(),
+        "sort_order": sort_order,
+        "duration_minutes": duration,
+    }
+    return fields, errors
+
+
 @admin_bp.route("/servicios", methods=["GET", "POST"])
 @admin_required
 def services():
@@ -149,11 +175,7 @@ def services():
 def packages():
     if request.method == "POST":
         action = request.form.get("action")
-
-        name = request.form.get("name", "").strip()
-        price, price_error = parse_float(request.form.get("price"), "precio", minimum=0)
-        sort_order, sort_error = parse_int(request.form.get("sort_order"), "orden", minimum=0)
-        errors = [e for e in (validate_name(name), price_error, sort_error) if e]
+        fields, errors = _parse_pack_form()
         if errors:
             for error in errors:
                 flash(error, "error")
@@ -161,13 +183,14 @@ def packages():
 
         if action == "create":
             pack = ServicePackage(
-                name=name,
-                description=request.form.get("description", "").strip(),
-                includes=request.form.get("includes", "").strip(),
-                price=price,
+                name=fields["name"],
+                description=fields["description"],
+                includes=fields["includes"],
+                price=fields["price"],
                 currency="NIO",
-                image_url=request.form.get("image_url", "").strip(),
-                sort_order=sort_order,
+                duration_minutes=fields["duration_minutes"],
+                image_url=fields["image_url"],
+                sort_order=fields["sort_order"],
                 is_active=True,
                 is_seed=False,  # Creado por admin: el seed nunca lo borra.
             )
@@ -178,12 +201,13 @@ def packages():
         elif action == "update":
             pack = db.session.get(ServicePackage, int(request.form.get("package_id", 0) or 0))
             if pack:
-                pack.name = name or pack.name
-                pack.description = request.form.get("description", pack.description).strip()
-                pack.includes = request.form.get("includes", pack.includes).strip()
-                pack.price = price if price is not None else pack.price
-                pack.image_url = request.form.get("image_url", pack.image_url).strip()
-                pack.sort_order = sort_order if sort_order is not None else pack.sort_order
+                pack.name = fields["name"] or pack.name
+                pack.description = fields["description"] or pack.description
+                pack.includes = fields["includes"] or pack.includes
+                pack.price = fields["price"] if fields["price"] is not None else pack.price
+                pack.duration_minutes = fields["duration_minutes"] or pack.duration_minutes
+                pack.image_url = fields["image_url"] or pack.image_url
+                pack.sort_order = fields["sort_order"] if fields["sort_order"] is not None else pack.sort_order
                 pack.is_active = request.form.get("is_active") == "on"
                 _audit("package_update", f"{pack.id}:{pack.name}")
                 db.session.commit()
@@ -212,11 +236,154 @@ def bookings():
         return redirect(url_for("admin.bookings"))
 
     status_filter = request.args.get("status", "")
+    page = max(request.args.get("page", 1, type=int), 1)
     query = Booking.query.order_by(Booking.created_at.desc())
     if status_filter:
         query = query.filter_by(status=status_filter)
-    items = query.limit(100).all()
-    return render_template("admin/bookings.html", bookings=items, status_filter=status_filter)
+    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    return render_template(
+        "admin/bookings.html",
+        bookings=pagination.items,
+        status_filter=status_filter,
+        pagination=pagination,
+    )
+
+
+@admin_bp.route("/citas/export.csv")
+@admin_required
+def export_bookings_csv():
+    """Export de citas (contabilidad). Respeta el filtro de estado."""
+    status_filter = request.args.get("status", "")
+    query = Booking.query.order_by(Booking.preferred_date, Booking.preferred_time)
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "id",
+            "fecha",
+            "hora",
+            "estado",
+            "pago",
+            "cliente",
+            "email",
+            "telefono",
+            "servicio",
+            "pack",
+            "anticipo",
+            "notas",
+            "creada",
+        ]
+    )
+    for b in query.all():
+        writer.writerow(
+            [
+                b.id,
+                b.preferred_date,
+                b.preferred_time,
+                b.status,
+                b.payment_status,
+                b.full_name,
+                b.email,
+                b.phone,
+                b.service.name if b.service else "",
+                b.package.name if b.package else "",
+                f"{b.deposit_amount:.0f}",
+                b.admin_notes or b.message or "",
+                b.created_at.isoformat(timespec="seconds") if b.created_at else "",
+            ]
+        )
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
+    suffix = f"-{status_filter}" if status_filter else ""
+    response = Response(
+        "\ufeff" + buffer.getvalue(),  # BOM: Excel abre bien los acentos.
+        mimetype="text/csv; charset=utf-8",
+    )
+    response.headers["Content-Disposition"] = f"attachment; filename=citas{suffix}-{stamp}.csv"
+    _audit("bookings_export", f"filtro={status_filter or 'todas'}")
+    db.session.commit()
+    return response
+
+
+@admin_bp.route("/resenas", methods=["GET", "POST"])
+@admin_required
+def reviews():
+    """Aprobación de reseñas (solo las aprobadas se publican en la portada)."""
+    if request.method == "POST":
+        review = db.session.get(Review, int(request.form.get("review_id", 0) or 0))
+        action = request.form.get("action")
+        if review:
+            if action == "approve":
+                review.is_approved = True
+                _audit("review_approve", f"#{review.id} {review.rating}★")
+                db.session.commit()
+                flash("Reseña publicada en la portada.", "success")
+            elif action == "hide":
+                review.is_approved = False
+                _audit("review_hide", f"#{review.id}")
+                db.session.commit()
+                flash("Reseña ocultada.", "success")
+            elif action == "delete":
+                _audit("review_delete", f"#{review.id}")
+                db.session.delete(review)
+                db.session.commit()
+                flash("Reseña eliminada.", "success")
+        return redirect(url_for("admin.reviews"))
+
+    items = Review.query.order_by(Review.created_at.desc()).all()
+    return render_template(
+        "admin/reviews.html",
+        reviews=items,
+        pending=sum(1 for r in items if not r.is_approved),
+    )
+
+
+@admin_bp.route("/clientas")
+@admin_required
+def clients():
+    """Ficha-listado de clientas: citas, gasto y última visita."""
+    users = User.query.filter_by(is_admin=False).order_by(User.created_at.desc()).all()
+    rows = []
+    for user in users:
+        bookings = user.bookings
+        rows.append(
+            {
+                "user": user,
+                "bookings": len(bookings),
+                "active": sum(1 for b in bookings if b.status not in {"cancelled", "completed"}),
+                "spent": sum(b.deposit_amount for b in bookings if b.payment_status == "paid"),
+                "last": max((b.preferred_date for b in bookings), default="—"),
+            }
+        )
+    return render_template("admin/clients.html", rows=rows)
+
+
+@admin_bp.route("/clienta/<int:user_id>")
+@admin_required
+def client_detail(user_id):
+    """Historial completo de una clienta."""
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    bookings = (
+        Booking.query.filter_by(user_id=user.id)
+        .order_by(Booking.preferred_date.desc(), Booking.preferred_time.desc())
+        .all()
+    )
+    reviews = Review.query.filter_by(user_id=user.id).order_by(Review.created_at.desc()).all()
+    stats = {
+        "total": len(bookings),
+        "completed": sum(1 for b in bookings if b.status == "completed"),
+        "active": sum(1 for b in bookings if b.status not in {"cancelled", "completed"}),
+        "spent": sum(b.deposit_amount for b in bookings if b.payment_status == "paid"),
+        "paid": sum(1 for b in bookings if b.payment_status == "paid"),
+    }
+    return render_template(
+        "admin/client_detail.html", client=user, bookings=bookings, reviews=reviews, stats=stats
+    )
 
 
 @admin_bp.route("/comprobante/<int:booking_id>")

@@ -214,3 +214,35 @@ def notify_booking_status(booking) -> None:
         f"\n— Beauty Nicaragua"
     )
     send_email(booking.email, f"Actualización de cita — {booking.status}", body)
+
+
+def send_booking_reminder(booking) -> bool:
+    """Recordatorio 24 h antes de la cita: WhatsApp (Twilio) + email.
+
+    Devuelve True si el mensaje pudo entregarse (o quedar registrado en logs
+    cuando Twilio no está configurado), False si todos los canales fallaron.
+    """
+    title = booking.title
+    when = f"{booking.preferred_date} a las {booking.preferred_time}"
+    first_name = (booking.full_name or "").split()[0] or "belleza"
+
+    whatsapp_text = (
+        f"¡Hola {first_name}! 🌸 Te recordamos tu cita en Beauty Nicaragua: "
+        f"«{title}» mañana {when}. "
+        f"Si no podés asistir, contestanos por aquí para reprogramar. ¡Te esperamos!"
+    )
+    sent_whatsapp = send_whatsapp_message(booking.phone, whatsapp_text)
+
+    email_body = (
+        f"Hola {booking.full_name},\n\n"
+        f"Te recordamos tu cita de MAÑANA:\n"
+        f"Servicio: {title}\n"
+        f"Fecha y hora: {when}\n"
+        f"Estado: {booking.status} · Pago: {booking.payment_status}\n\n"
+        f"Si no podés asistir, respondé este email o entrá a Mi cuenta para "
+        f"reprogramar o cancelar.\n\n"
+        f"WhatsApp: {whatsapp_link('Hola, necesito reprogramar mi cita de mañana.')}\n"
+        f"— Beauty Nicaragua (Managua)"
+    )
+    sent_email = send_email(booking.email, f"Mañana tienes cita — {title}", email_body)
+    return bool(sent_whatsapp or sent_email)

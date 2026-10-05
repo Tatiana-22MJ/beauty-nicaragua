@@ -39,16 +39,17 @@ create table if not exists services (
 
 -- ===== service_packages =====
 create table if not exists service_packages (
-    id          serial primary key,
-    name        varchar(120) not null,
-    description text not null,
-    includes    text default '',
-    price       double precision not null,
-    currency    varchar(3)   default 'NIO',
-    image_url   varchar(500) default '',
-    sort_order  integer      default 0,
-    is_active   boolean      default true,
-    is_seed     boolean not null default false
+    id               serial primary key,
+    name             varchar(120) not null,
+    description      text not null,
+    includes         text default '',
+    price            double precision not null,
+    currency         varchar(3)   default 'NIO',
+    duration_minutes integer      default 60,
+    image_url        varchar(500) default '',
+    sort_order       integer      default 0,
+    is_active        boolean      default true,
+    is_seed          boolean not null default false
 );
 
 -- ===== bookings =====
@@ -68,6 +69,7 @@ create table if not exists bookings (
     payment_proof  varchar(255) default '',              -- path en Supabase Storage o archivo local
     deposit_amount double precision default 0,
     admin_notes    text default '',
+    reminder_sent_at timestamp,                            -- recordatorio WhatsApp 24 h
     created_at     timestamp not null default now(),
     updated_at     timestamp
 );
@@ -108,9 +110,24 @@ create table if not exists audit_logs (
     created_at timestamp not null default now()
 );
 
+-- ===== reviews =====
+create table if not exists reviews (
+    id          serial primary key,
+    booking_id  integer unique not null references bookings(id),
+    user_id     integer references users(id),
+    rating      integer not null check (rating between 1 and 5),
+    comment     text default '',
+    is_approved boolean not null default false,           -- solo las aprobadas se publican
+    created_at  timestamp not null default now()
+);
+
+create index if not exists ix_reviews_booking on reviews (booking_id);
+
 -- ===== Row Level Security (defensa en profundidad) =====
--- El backend conecta como postgres (bypasea RLS). Sin políticas, la Data API
--- / clave anon NO puede leer ni escribir ninguna tabla de la app.
+-- RLS habilitada en todas las tablas. Sin políticas para los roles de la Data API
+-- (anon/authenticated), la clave pública NO puede leer ni escribir nada.
+-- La app corre con el rol dedicado beauty_app (permisos mínimos, NO es usable
+-- desde un JWT), al que se le crea una política explícita por tabla.
 alter table users            enable row level security;
 alter table services         enable row level security;
 alter table service_packages enable row level security;
@@ -118,3 +135,18 @@ alter table bookings         enable row level security;
 alter table chat_messages    enable row level security;
 alter table salon_info       enable row level security;
 alter table audit_logs       enable row level security;
+alter table reviews          enable row level security;
+
+do $$
+declare t text;
+begin
+    if not exists (select 1 from pg_roles where rolname = 'beauty_app') then
+        raise notice 'rol beauty_app no existe: policies omitidas';
+        return;
+    end if;
+    foreach t in array array['users','services','service_packages','bookings',
+                             'chat_messages','salon_info','audit_logs','reviews'] loop
+        execute format('drop policy if exists app_all on %I', t);
+        execute format('create policy app_all on %I to beauty_app using (true) with check (true)', t);
+    end loop;
+end $$;

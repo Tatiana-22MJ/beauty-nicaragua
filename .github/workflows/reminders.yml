@@ -1,0 +1,37 @@
+name: Recordatorios WhatsApp/email (24 h antes)
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 07:00 en Managua (UTC-6)
+  workflow_dispatch: {}     # ejecución manual desde la pestaña Actions
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Enviar recordatorios
+        env:
+          # Mínimo necesario: la BD donde viven las citas.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Canal WhatsApp (si falta, se registra el link wa.me en los logs).
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          # Email de respaldo (opcional; sin credenciales se loguea).
+          MAIL_ENABLED: ${{ secrets.MAIL_ENABLED }}
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          TZ: America/Managua
+        run: python scripts/send_reminders.py

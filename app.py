@@ -2,8 +2,10 @@
 # app.py — Factory Flask + SocketIO Beauty Nicaragua (versión profesional)
 # =============================================================================
 
+import json
 import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,18 +21,18 @@ from flask import (
     url_for,
 )
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlparse
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_socketio import emit, join_room
 
-from availability import available_slots, is_slot_free
+from availability import available_slots, duration_for, is_slot_free
 from chatbot import get_bot_response
 from config import Config, ProductionConfig, validate_production
 from extensions import csrf, db, limiter, login_manager, migrate, socketio
-from models import Booking, ChatMessage, SalonInfo, Service, ServicePackage, User
+from models import Booking, ChatMessage, Review, SalonInfo, Service, ServicePackage, User
 from notifications import notify_booking_created, send_email, whatsapp_link
 from routes_account import account_bp
 from routes_admin import admin_bp
@@ -52,11 +54,59 @@ BASE_DIR = Path(__file__).resolve().parent
 RESET_SALT = "beauty-password-reset-v1"
 RESET_TOKEN_MAX_AGE = 3600  # 1 hora de validez del enlace.
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
 logger = logging.getLogger("beauty")
+
+
+class JsonLogFormatter(logging.Formatter):
+    """Log en JSON por línea (LOG_FORMAT=json) — fácil de ingerir en Railway/Sentry."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "ts": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(timespec="seconds"),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exc"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=False)
+
+
+def configure_logging() -> None:
+    """Logging legible en consola; JSON por línea si LOG_FORMAT=json."""
+    if os.environ.get("LOG_FORMAT", "").strip().lower() == "json":
+        handler = logging.StreamHandler()
+        handler.setFormatter(JsonLogFormatter())
+        logging.basicConfig(level=logging.INFO, handlers=[handler])
+    else:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        )
+
+
+def init_sentry(app) -> None:
+    """Sentry opcional: solo si SENTRY_DSN está definido (errores en producción)."""
+    dsn = (app.config.get("SENTRY_DSN") or "").strip()
+    if not dsn:
+        return
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+
+        sentry_sdk.init(
+            dsn=dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=float(app.config.get("SENTRY_TRACES_SAMPLE_RATE", 0.1)),
+            environment="production" if app.config.get("IS_PRODUCTION") else "development",
+            send_default_pii=False,
+        )
+        logger.info("Sentry inicializado (errores → dashboard de Sentry)")
+    except Exception:
+        logger.exception("No se pudo inicializar Sentry; la app continúa sin él")
+
+
+configure_logging()
 
 
 def create_app(config_class=Config):
@@ -67,6 +117,9 @@ def create_app(config_class=Config):
     # Validación fail-fast: nunca arrancar en producción con secretos por defecto.
     if getattr(config_class, "IS_PRODUCTION", False):
         validate_production(app)
+
+    # Observabilidad: errores a Sentry solo si hay DSN (nunca rompe el arranque).
+    init_sentry(app)
 
     # Pool acotado solo para Postgres (Supabase): conexiones estables con Supavisor.
     if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql"):
@@ -102,9 +155,11 @@ def create_app(config_class=Config):
         return db.session.get(User, int(user_id))
 
     with app.app_context():
-        db.create_all()
-        migrate_schema()
-        seed_database(app)
+        # BEAUTY_SKIP_SCHEMA_INIT=1 → usado solo al generar una migración base
+        # contra una BD vacía (no debe crear tablas ni sembrar datos).
+        if os.environ.get("BEAUTY_SKIP_SCHEMA_INIT") != "1":
+            bootstrap_schema()
+            seed_database(app)
 
     @app.after_request
     def set_security_headers(response):
@@ -145,89 +200,43 @@ def create_app(config_class=Config):
     return app
 
 
-def migrate_schema():
-    """ALTER ligeros para BDs antiguas (complementa Flask-Migrate)."""
-    inspector = inspect(db.engine)
-    tables = inspector.get_table_names()
+def bootstrap_schema():
+    """Crea/actualiza el esquema con Alembic (única fuente de verdad).
 
-    if "users" in tables:
-        cols = {c["name"] for c in inspector.get_columns("users")}
-        if "is_admin" not in cols:
-            db.session.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
-            db.session.commit()
-
-    if "services" in tables:
-        cols = {c["name"] for c in inspector.get_columns("services")}
-        alters = []
-        if "image_url" not in cols:
-            alters.append("ALTER TABLE services ADD COLUMN image_url VARCHAR(500) DEFAULT ''")
-        if "currency" not in cols:
-            alters.append("ALTER TABLE services ADD COLUMN currency VARCHAR(3) DEFAULT 'NIO'")
-        if "duration_minutes" not in cols:
-            alters.append("ALTER TABLE services ADD COLUMN duration_minutes INTEGER DEFAULT 60")
-        if "quote_only" not in cols:
-            alters.append("ALTER TABLE services ADD COLUMN quote_only BOOLEAN DEFAULT 0")
-        if "is_seed" not in cols:
-            alters.append("ALTER TABLE services ADD COLUMN is_seed BOOLEAN DEFAULT 0")
-        for sql in alters:
-            db.session.execute(text(sql))
-        if alters:
-            db.session.commit()
-
-    if "service_packages" in tables:
-        cols = {c["name"] for c in inspector.get_columns("service_packages")}
-        if "is_seed" not in cols:
-            db.session.execute(text("ALTER TABLE service_packages ADD COLUMN is_seed BOOLEAN DEFAULT 0"))
-            db.session.commit()
-
-    if "bookings" in tables:
-        cols = {c["name"] for c in inspector.get_columns("bookings")}
-        alters = []
-        if "user_id" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN user_id INTEGER")
-        if "preferred_time" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN preferred_time VARCHAR(10) DEFAULT '09:00'")
-        if "package_id" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN package_id INTEGER")
-        if "payment_status" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN payment_status VARCHAR(30) DEFAULT 'unpaid'")
-        if "payment_proof" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN payment_proof VARCHAR(255) DEFAULT ''")
-        if "deposit_amount" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN deposit_amount FLOAT DEFAULT 0")
-        if "admin_notes" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN admin_notes TEXT DEFAULT ''")
-        if "updated_at" not in cols:
-            alters.append("ALTER TABLE bookings ADD COLUMN updated_at DATETIME")
-        for sql in alters:
-            db.session.execute(text(sql))
-        if alters:
-            db.session.commit()
-
-    _ensure_unique_slot_index()
-
-
-def _ensure_unique_slot_index():
-    """Índice único parcial anti doble-reserva (SQLite y Postgres lo soportan).
-
-    Si la BD ya contiene citas activas duplicadas, la creación falla: se
-    registra advertencia sin romper el arranque (hay que depurar los duplicados).
+    - `migrations/` presente → `flask db upgrade` (idempotente; con reintento
+      ante la carrera de dos workers arrancando a la vez).
+    - Sin migraciones (checkout incompleto) → fallback `create_all()`.
     """
-    try:
-        db.session.execute(
-            text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_active_slot "
-                "ON bookings (preferred_date, preferred_time) "
-                "WHERE status IN ('pending','confirmed','reschedule')"
-            )
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.warning(
-            "No se pudo crear uq_bookings_active_slot (¿citas activas duplicadas?). "
-            "Deduplica bookings activos por fecha+hora y reinicia."
-        )
+    migrations_dir = BASE_DIR / "migrations"
+    if not migrations_dir.exists():
+        logger.warning("No existe migrations/: usando create_all() de compatibilidad.")
+        db.create_all()
+        return
+
+    from flask_migrate import upgrade
+
+    for attempt in (1, 2):
+        try:
+            upgrade()
+            return
+        except Exception:
+            if attempt == 2:
+                logger.exception(
+                    "No se pudieron aplicar las migraciones. Si la BD es anterior a "
+                    "Alembic y ya tiene tablas: flask db stamp head"
+                )
+                raise
+            logger.warning("Posible carrera de migración entre workers; reintentando…")
+            time.sleep(2)
+
+
+def requested_duration() -> int:
+    """Duración del servicio/pack elegido en el formulario (query string)."""
+    service_id = request.args.get("service_id", type=int)
+    package_id = request.args.get("package_id", type=int)
+    service = db.session.get(Service, service_id) if service_id else None
+    package = db.session.get(ServicePackage, package_id) if package_id else None
+    return duration_for(service, package)
 
 
 def get_salon_info():
@@ -273,16 +282,39 @@ def register_routes(app):
         services = Service.query.filter_by(is_active=True).order_by(Service.sort_order).all()
         packages = ServicePackage.query.filter_by(is_active=True).order_by(ServicePackage.sort_order).all()
         info = get_salon_info()
-        return render_template("index.html", services=services, packages=packages, info=info)
+        reviews = (
+            Review.query.filter_by(is_approved=True)
+            .order_by(Review.created_at.desc())
+            .limit(6)
+            .all()
+        )
+        return render_template(
+            "index.html", services=services, packages=packages, info=info, reviews=reviews
+        )
+
+    @app.route("/healthz")
+    @limiter.exempt
+    def healthz():
+        """Health check para Railway/Render/uptime: BD + app vivas."""
+        payload = {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
+        try:
+            db.session.execute(text("SELECT 1"))
+            payload["database"] = "ok"
+        except Exception:
+            logger.exception("healthz: la BD no responde")
+            payload.update({"status": "degraded", "database": "error"})
+            return jsonify(payload), 503
+        return jsonify(payload)
 
     @app.route("/api/slots")
     def api_slots():
-        """JSON de horarios libres para una fecha (agenda real)."""
+        """JSON de horarios libres para una fecha (agenda real, según duración)."""
         date_str = request.args.get("date", "").strip()
         if validate_date(date_str):
             return jsonify({"ok": False, "slots": [], "error": "Fecha inválida"}), 400
-        slots = available_slots(date_str)
-        return jsonify({"ok": True, "slots": slots, "closed": len(slots) == 0})
+        duration = requested_duration()
+        slots = available_slots(date_str, duration_minutes=duration)
+        return jsonify({"ok": True, "slots": slots, "closed": len(slots) == 0, "duration": duration})
 
     @app.route("/registro", methods=["GET", "POST"])
     @limiter.limit(Config.LOGIN_RATE_LIMIT)
@@ -467,8 +499,14 @@ def register_routes(app):
             errors.append("Selecciona un servicio o pack.")
         if service and validate_service_id(service_id, service):
             errors.append(validate_service_id(service_id, service))
-        if preferred_date and preferred_time and not is_slot_free(preferred_date, preferred_time):
-            errors.append("Ese horario ya está ocupado. Elegí otro.")
+        duration = duration_for(service, package)
+        if preferred_date and preferred_time and not is_slot_free(
+            preferred_date, preferred_time, duration_minutes=duration
+        ):
+            errors.append(
+                "Ese horario ya está ocupado o no alcanza para la duración "
+                f"del servicio ({duration} min). Elegí otro."
+            )
 
         if errors:
             for error in errors:

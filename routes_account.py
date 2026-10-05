@@ -18,12 +18,12 @@ from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
-from availability import available_slots, is_slot_free
+from availability import available_slots, booking_duration_minutes, is_slot_free
 from extensions import db, limiter
-from models import AuditLog, Booking, Service, ServicePackage
+from models import AuditLog, Booking, Review, Service, ServicePackage
 from notifications import notify_booking_status, whatsapp_link
 from supabase_storage import upload_proof as upload_proof_to_supabase
-from validators import validate_date, validate_file_signature, validate_time
+from validators import validate_date, validate_file_signature, validate_rating, validate_time
 
 account_bp = Blueprint("account", __name__, url_prefix="/mi-cuenta")
 
@@ -106,9 +106,12 @@ def reschedule_booking(booking_id):
     if request.method == "POST":
         new_date = request.form.get("preferred_date", "").strip()
         new_time = request.form.get("preferred_time", "").strip()
+        duration = booking_duration_minutes(booking)
         errors = [e for e in (validate_date(new_date), validate_time(new_time)) if e]
-        if not errors and not is_slot_free(new_date, new_time, exclude_booking_id=booking.id):
-            errors.append("Ese horario ya no está disponible.")
+        if not errors and not is_slot_free(
+            new_date, new_time, duration_minutes=duration, exclude_booking_id=booking.id
+        ):
+            errors.append("Ese horario ya no está disponible (o no alcanza para la duración).")
         if errors:
             for e in errors:
                 flash(e, "error")
@@ -127,7 +130,11 @@ def reschedule_booking(booking_id):
         flash("Solicitud de reprogramación enviada. Te confirmaremos pronto.", "success")
         return redirect(url_for("account.dashboard"))
 
-    slots = available_slots(booking.preferred_date, exclude_booking_id=booking.id)
+    slots = available_slots(
+        booking.preferred_date,
+        duration_minutes=booking_duration_minutes(booking),
+        exclude_booking_id=booking.id,
+    )
     return render_template("account/reschedule.html", booking=booking, slots=slots)
 
 
@@ -173,4 +180,41 @@ def upload_proof(booking_id):
     booking.payment_status = "pending_transfer"
     db.session.commit()
     flash("Comprobante recibido. Validaremos el anticipo pronto.", "success")
+    return redirect(url_for("account.dashboard"))
+
+
+@account_bp.route("/cita/<int:booking_id>/resena", methods=["POST"])
+@login_required
+@limiter.limit("10 per hour")
+def submit_review(booking_id):
+    """Reseña de una cita completada (queda pendiente de aprobación admin)."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking or booking.user_id != current_user.id:
+        flash("Cita no encontrada.", "error")
+        return redirect(url_for("account.dashboard"))
+    if booking.status != "completed":
+        flash("Solo podés reseñar citas completadas.", "error")
+        return redirect(url_for("account.dashboard"))
+    if booking.review:
+        flash("Ya dejaste una reseña para esta cita.", "error")
+        return redirect(url_for("account.dashboard"))
+
+    rating = request.form.get("rating", type=int)
+    comment = request.form.get("comment", "").strip()
+    error = validate_rating(rating, comment)
+    if error:
+        flash(error, "error")
+        return redirect(url_for("account.dashboard"))
+
+    db.session.add(
+        Review(
+            booking_id=booking.id,
+            user_id=current_user.id,
+            rating=rating,
+            comment=comment,
+            is_approved=False,
+        )
+    )
+    db.session.commit()
+    flash("¡Gracias por tu reseña! La publicaremos cuando la revisemos.", "success")
     return redirect(url_for("account.dashboard"))

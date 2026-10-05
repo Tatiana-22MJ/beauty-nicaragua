@@ -361,6 +361,14 @@
       </header>
 
       <div class="testimonials-grid">
+        {% if reviews %}
+          {% for r in reviews %}
+          <blockquote class="testimonial-card reveal">
+            <p>"{{ r.comment or 'Excelente atención y resultados.' }}"</p>
+            <footer>— {{ r.author }} · {{ '★' * r.rating }}{% if r.booking %} · {{ r.booking.title }}{% endif %}</footer>
+          </blockquote>
+          {% endfor %}
+        {% else %}
         <blockquote class="testimonial-card reveal">
           <p>"El Hydrafacial en Managua me dejó la piel luminosa. Precios claros en córdobas y trato excelente."</p>
           <footer>— María G. · Bolonia</footer>
@@ -373,6 +381,7 @@
           <p>"Manicura y spa perfectos para el clima. Bella en el chat me orientó con los precios en C$."</p>
           <footer>— Carmen R. · Plaza Las Cumbres</footer>
         </blockquote>
+        {% endif %}
       </div>
     </div>
   </section>

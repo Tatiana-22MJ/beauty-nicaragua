@@ -81,6 +81,15 @@ def validate_service_id(value, service_exists) -> str | None:
     return None
 
 
+def validate_rating(rating, comment: str = "") -> str | None:
+    """Reseña: puntuación 1-5 obligatoria, comentario opcional (máx. 500)."""
+    if not isinstance(rating, int) or not 1 <= rating <= 5:
+        return "Elegí una puntuación de 1 a 5 estrellas."
+    if comment and len(comment) > 500:
+        return "El comentario puede tener hasta 500 caracteres."
+    return None
+
+
 # --- Parsers defensivos (inputs de formularios admin / públicos) --------------
 
 

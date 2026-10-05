@@ -376,10 +376,18 @@ Layout HTML5 `lang="es-NI"`, meta SEO/OG, fonts, CSS, Socket.IO, Three.js, `main
 
 ## 20. Configuración y variables de entorno
 
+Variables principales (el listado completo está en `.env.example`):
+
 | Variable | Default | Uso |
 |----------|---------|-----|
 | `SECRET_KEY` | `beauty-dev-key-…` | Firmar cookies (cambiar en prod) |
-| `DATABASE_URL` | `sqlite:///…/instance/beauty.db` | URI SQLAlchemy |
+| `DATABASE_URL` | `sqlite:///…/instance/beauty.db` | URI SQLAlchemy (en prod: rol `beauty_app` de Supabase) |
+| `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | — | Storage de comprobantes |
+| `MAIL_*`, `TWILIO_*` | — | Email + WhatsApp (recordatorios) |
+| `SENTRY_DSN` | — | Errores en prod (opcional) |
+| `LOG_FORMAT` | `text` | `json` para logs estructurados en prod |
+| `FLASK_ENV` | `development` | `production` activa fail-fast de secretos |
+| `BEAUTY_SKIP_SCHEMA_INIT` | — | `1` = no correr migraciones ni seeds al arrancar |
 
 Ejemplo PowerShell:
 
@@ -388,13 +396,15 @@ $env:SECRET_KEY="tu-clave-segura"
 py app.py
 ```
 
+Despliegue (Railway + workflows de recordatorios/backups): ver [`DEPLOY.md`](DEPLOY.md).
+
 ---
 
 ## 21. Flujo de datos completo
 
 ### Primera visita
-1. `create_app()` → `db.create_all()` → `migrate_schema()` → `seed_database()`.
-2. GET `/` → servicios NIO + info Managua → HTML.
+1. `create_app()` → `bootstrap_schema()` (Alembic `upgrade` + `seed_database()`).
+2. GET `/` → servicios NIO + info Managua + reseñas aprobadas → HTML.
 
 ### Registro → Chat
 1. POST `/registro` → User + login.
@@ -436,12 +446,14 @@ Beauty **no afirma afiliación** con esas marcas; las usa como referencia de mer
 
 ## 24. Roadmap sugerido
 
-- Panel admin para editar precios NIO sin tocar código.
-- Confirmación de citas por WhatsApp Business (+505).
-- Pagos en córdobas (pasarela local).
-- Alembic para migraciones formales.
-- Tests automatizados (pytest + Playwright).
-- Deploy con Gunicorn + eventlet / gevent detrás de Nginx.
+- ✅ Panel admin para editar precios NIO sin tocar código (incluye duración y packs).
+- ✅ Recordatorios automáticos WhatsApp 24 h antes (Twilio + email, cron diario).
+- ✅ Alembic para migraciones formales (baseline + stamp en Supabase).
+- ✅ Tests automatizados (80 pytest) + CI en GitHub Actions.
+- ✅ Deploy en Railway (Docker + healthcheck `/healthz`), backups diarios de la BD.
+- 🔜 Pagos: link/QR además de transferencia (decidido postergar).
+- 🔜 SEO local (Google Business Profile, sitemap, OG images).
+- 🔜 Modelo de personal (varias estilistas) cuando se valide la demanda.
 
 ---
 

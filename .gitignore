@@ -7,7 +7,7 @@ instance/*.db-journal
 .env
 .env.*
 !.env.example
-instance/uploads/
+instance/
 .pytest_cache/
 .coverage
 coverage.xml
@@ -15,3 +15,4 @@ coverage.xml
 Thumbs.db
 server.log
 compile.log
+backups/

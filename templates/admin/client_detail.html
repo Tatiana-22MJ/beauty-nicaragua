@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Admin · Ficha de clienta — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header">
+      <h1>{{ client.full_name }}</h1>
+      <a class="btn btn-ghost" href="{{ url_for('admin.clients') }}">« Volver</a>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <section class="admin-card">
+      <h2>Contacto</h2>
+      <p>{{ client.email }} · {{ client.phone }}</p>
+      <p class="muted">Usuario: {{ client.username }} · Alta: {{ client.created_at.strftime('%Y-%m-%d') if client.created_at else '—' }}</p>
+    </section>
+
+    <section class="account-stats" aria-label="Resumen de la clienta">
+      <article class="stat-card"><span class="stat-label">Citas totales</span><strong>{{ stats.total }}</strong></article>
+      <article class="stat-card"><span class="stat-label">Activas</span><strong>{{ stats.active }}</strong></article>
+      <article class="stat-card"><span class="stat-label">Completadas</span><strong>{{ stats.completed }}</strong></article>
+      <article class="stat-card"><span class="stat-label">Anticipos pagados</span><strong>{{ stats.spent|nio }}</strong></article>
+    </section>
+
+    <section>
+      <h2>Historial de citas</h2>
+      {% for b in bookings %}
+      <article class="admin-card">
+        <div>
+          <h3>#{{ b.id }} · {{ b.title }}</h3>
+          <p>{{ b.preferred_date }} {{ b.preferred_time }} ·
+            <span class="badge badge-{{ b.status }}">{{ b.status }}</span> · pago: {{ b.payment_status }}</p>
+          <p class="muted">{{ b.message or 'Sin mensaje' }}</p>
+        </div>
+        <a class="btn btn-ghost" href="{{ url_for('admin.bookings') }}">Ver en citas</a>
+      </article>
+      {% else %}
+      <p class="muted">Sin citas registradas.</p>
+      {% endfor %}
+    </section>
+
+    {% if reviews %}
+    <section>
+      <h2>Reseñas</h2>
+      {% for r in reviews %}
+      <article class="admin-card">
+        <div>
+          <p>{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</p>
+          <p>{{ r.comment or 'Sin comentario' }}</p>
+          <p class="muted">{{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }} ·
+            {{ 'publicada' if r.is_approved else 'pendiente' }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

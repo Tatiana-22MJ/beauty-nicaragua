@@ -74,6 +74,7 @@ class ServicePackage(db.Model):
     includes = db.Column(db.Text, default="")  # Lista legible de lo incluido.
     price = db.Column(db.Float, nullable=False)
     currency = db.Column(db.String(3), default="NIO")
+    duration_minutes = db.Column(db.Integer, default=60)  # Duración del pack para la agenda.
     image_url = db.Column(db.String(500), default="")
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
@@ -103,6 +104,7 @@ class Booking(db.Model):
     payment_proof = db.Column(db.String(255), default="")  # Nombre de archivo en uploads/
     deposit_amount = db.Column(db.Float, default=0.0)  # Anticipo sugerido en C$.
     admin_notes = db.Column(db.Text, default="")
+    reminder_sent_at = db.Column(db.DateTime, nullable=True)  # Recordatorio WhatsApp 24 h enviado.
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = db.Column(
         db.DateTime,
@@ -153,6 +155,34 @@ class ChatMessage(db.Model):
 
     def __repr__(self):
         return f"<ChatMessage {self.sender}>"
+
+
+class Review(db.Model):
+    """Reseña de una cita completada (pendiente de aprobación admin)."""
+
+    __tablename__ = "reviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(
+        db.Integer, db.ForeignKey("bookings.id"), unique=True, nullable=False, index=True
+    )
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    rating = db.Column(db.Integer, nullable=False)  # 1..5
+    comment = db.Column(db.Text, default="")
+    is_approved = db.Column(db.Boolean, default=False, nullable=False)  # Solo las aprobadas se publican.
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    booking = db.relationship("Booking", backref=db.backref("review", uselist=False))
+    user = db.relationship("User", backref=db.backref("reviews", lazy=True))
+
+    @property
+    def author(self) -> str:
+        if self.booking:
+            return self.booking.full_name
+        return "Clienta"
+
+    def __repr__(self):
+        return f"<Review {self.id} {self.rating}★ approved={self.is_approved}>"
 
 
 class SalonInfo(db.Model):

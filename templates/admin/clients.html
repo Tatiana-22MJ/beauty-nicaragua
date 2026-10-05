@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Admin · Clientas — Beauty{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  {% include "admin/_nav.html" %}
+  <main class="admin-main" id="contenido-principal">
+    <header class="admin-header"><h1>Clientas</h1></header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<p class="flash flash-{{ category }}">{{ message }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Clienta</th>
+            <th>Contacto</th>
+            <th>Citas</th>
+            <th>Activas</th>
+            <th>Anticipos pagados</th>
+            <th>Última cita</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.user.full_name }}</td>
+            <td>{{ row.user.email }}<br><span class="muted">{{ row.user.phone }}</span></td>
+            <td>{{ row.bookings }}</td>
+            <td>{{ row.active }}</td>
+            <td>{{ row.spent|nio }}</td>
+            <td>{{ row.last }}</td>
+            <td><a class="btn btn-ghost" href="{{ url_for('admin.client_detail', user_id=row.user.id) }}">Ficha</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">Sin clientas registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+{% endblock %}

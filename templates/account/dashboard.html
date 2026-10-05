@@ -84,6 +84,23 @@
               <input type="file" name="payment_proof" accept=".png,.jpg,.jpeg,.webp,.pdf" required onchange="this.form.submit()">
             </label>
           </form>
+          {% elif b.status == 'completed' %}
+            {% if b.review %}
+            <p class="muted">Tu reseña: {{ '★' * b.review.rating }} ·
+              {% if b.review.is_approved %}publicada{% else %}pendiente de aprobación{% endif %}</p>
+            {% else %}
+            <form method="post" action="{{ url_for('account.submit_review', booking_id=b.id) }}" class="review-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label>Calificación
+                <select name="rating" required>
+                  <option value="" disabled selected>—</option>
+                  {% for star in [5, 4, 3, 2, 1] %}<option value="{{ star }}">{{ star }} ★</option>{% endfor %}
+                </select>
+              </label>
+              <input type="text" name="comment" maxlength="500" placeholder="Contanos cómo fue (opcional)">
+              <button type="submit" class="btn btn-primary">Enviar reseña</button>
+            </form>
+            {% endif %}
           {% endif %}
         </div>
       </article>
