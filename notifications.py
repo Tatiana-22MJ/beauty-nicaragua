@@ -176,7 +176,7 @@ def notify_booking_created(booking) -> None:
         f"Beneficiario: {current_app.config.get('BANK_HOLDER', '')}"
     )
     if current_app.config.get("PAYMENT_PHONE"):
-        pago_lines += f"\nPagoMóvil: {current_app.config['PAYMENT_PHONE']}"
+        pago_lines += f"\nTransferencia a: {current_app.config['PAYMENT_PHONE']}"
     if current_app.config.get("PAYMENT_REFERENCE"):
         pago_lines += f"\nReferencia: {current_app.config['PAYMENT_REFERENCE']}"
     if current_app.config.get("PAYMENT_LINK"):

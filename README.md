@@ -1,12 +1,31 @@
-# Beauty Nicaragua — Documentación exhaustiva
+# Beauty Nicaragua
 
 [![CI Tests & Linting](https://github.com/Tatiana-22MJ/beauty-nicaragua/actions/workflows/ci.yml/badge.svg)](https://github.com/Tatiana-22MJ/beauty-nicaragua/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-80%20passed-brightgreen)](#4-instalación-y-ejecución)
-[![Deploy](https://img.shields.io/badge/deploy-Railway-8b5cf6)](https://web-production-6419f.up.railway.app)
 
-> 🌐 **En producción:** **https://web-production-6419f.up.railway.app** · Backend Flask (Docker) en Railway + Supabase (Postgres 17 + Storage) en `us-east-1`.
+🌐 **Demo en producción:** [https://web-production-6419f.up.railway.app](https://web-production-6419f.up.railway.app)
 
-**Beauty** es una aplicación web full stack de salón / spa médico localizada para **Managua, Nicaragua**, con chat en tiempo real restringido a usuarias autenticadas, animaciones buttery-smooth, narración con scroll (scrolltelling), renderizado 3D interactivo y catálogo de tratamientos alineado al mercado estético nicaragüense.
+![Portada de Beauty Nicaragua en producción](docs/screenshots/portada.png)
+
+**Beauty** es una aplicación web de reservas para salón / spa en **Managua, Nicaragua**: agenda en tiempo real por duración de cada servicio, chat con Bella, anticipo con comprobante y panel administrativo. Corre con backend Flask (Docker) en **Railway** + **Supabase** (PostgreSQL 17 y Storage).
+
+### Funciones principales
+
+- **Reserva en línea** con agenda por duración del servicio y protección contra dobles reservas.
+- **Chat con Bella** (solo usuarias registradas) y **recordatorios 24 h** por WhatsApp/email automáticos.
+- **Anticipo por transferencia** con subida de comprobante, más QR y link de pago opcionales.
+- **Reseñas** aprobadas por el admin, ficha e historial de clientas, export CSV de citas.
+- **Panel administrativo**: citas, servicios, packs, reseñas, clientas y chats — con CI y backups diarios.
+
+### Ejecutar en 4 pasos
+
+```bash
+git clone https://github.com/Tatiana-22MJ/beauty-nicaragua.git && cd beauty-nicaragua
+py -m pip install -r requirements.txt
+copy .env.example .env    # bash: cp .env.example .env
+py app.py
+```
+
+Abrí [http://127.0.0.1:5000](http://127.0.0.1:5000). Sin `DATABASE_URL` usa **SQLite local**; con Supabase usa **PostgreSQL**. Tests, variables y deploy: [§4 Instalación](#4-instalación-y-ejecución).
 
 ---
 
@@ -44,7 +63,7 @@
 | Aspecto | Detalle |
 |--------|---------|
 | Producto | Landing + reservas + chat de salón Beauty |
-| Estado | ✅ **En producción** (octubre 2026) — 80 tests + CI verde |
+| Estado | ✅ **En producción** (octubre 2026) — CI verde (pytest + flake8) |
 | Mercado | Nicaragua (Managua) |
 | Moneda | Córdobas nicaragüenses (`NIO`, símbolo `C$`) |
 | Backend | Flask 3 + SQLAlchemy + Flask-Login + Flask-SocketIO (Gunicorn `gthread`) |
@@ -53,7 +72,7 @@
 | Storage | **Supabase Storage** (bucket privado `payment-proofs`, URLs firmadas) |
 | Migraciones | **Alembic** (baseline `9d90adb36db1`, única fuente de verdad del esquema) |
 | Deploy | **Railway** (Docker, healthcheck `/healthz`) — [demo](https://web-production-6419f.up.railway.app) |
-| CI/CD | GitHub Actions: pytest (80) + flake8, recordatorios diarios y backups de BD |
+| CI/CD | GitHub Actions: pytest + flake8, recordatorios diarios y backups de BD |
 | Chat | Solo usuarias **registradas / autenticadas** |
 | Visual | Hero full-bleed, scrolltelling, partículas 3D, imágenes locales |
 
@@ -67,7 +86,8 @@
 - ✅ **Alembic** — migraciones formales (sin `create_all` en producción), seeds idempotentes con flag `is_seed`.
 - ✅ **Observabilidad** — `/healthz` (DB check), Sentry opcional (`SENTRY_DSN`), logs JSON (`LOG_FORMAT=json`).
 - ✅ **CI + backups** — tests en cada push; `pg_dump` diario → bucket privado `backups` + artifact de 14 días.
-- 🔗 Pendiente de producto: link/QR de pago (decidido postergar), SEO local, modelo de personal.
+- ✅ **Link/QR de pago** — configurable por `.env` (`PAYMENT_LINK`, `PAYMENT_QR_URL`, teléfono y referencia); se muestra en Mi cuenta y en el email de reserva.
+- 🔜 Pendiente de producto: SEO local, modelo de personal.
 
 ---
 
@@ -107,8 +127,8 @@
 ## 4. Instalación y ejecución
 
 ```bash
-# 1) Ir a la carpeta del proyecto
-cd c:\Users\Tatiana\Documents\beauty
+# 1) Entrar a la carpeta del proyecto
+cd beauty
 
 # 2) (Opcional) Crear y activar entorno virtual
 py -m venv .venv
@@ -117,11 +137,27 @@ py -m venv .venv
 # 3) Instalar dependencias
 py -m pip install -r requirements.txt
 
-# 4) Arrancar el servidor (Flask + SocketIO)
+# 4) Copiar las variables de entorno y completarlas
+copy .env.example .env        # bash: cp .env.example .env
+
+# 5) Arrancar el servidor (Flask + SocketIO)
 py app.py
 ```
 
 Abrí en el navegador: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+
+**Base de datos:**
+
+- **Sin `DATABASE_URL`** (default): usa **SQLite local** en `instance/beauty.db` — ideal para desarrollo.
+- **Con `DATABASE_URL`** apuntando al pooler de Supabase: usa **PostgreSQL**. El esquema lo crea **Alembic** automáticamente al arrancar (no hace falta correr nada a mano).
+
+**Tests:**
+
+```bash
+py -m pip install -r requirements-dev.txt   # pytest + flake8 (dev/CI)
+py -m pytest -q                             # suite completa
+py -m flake8 --select=E9,F63,F7,F82 .       # lint (igual que el CI)
+```
 
 > **Importante:** no abras los HTML estáticos a mano. El chat y las rutas requieren el servidor Flask con SocketIO (`py app.py`).
 
@@ -130,25 +166,27 @@ Abrí en el navegador: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 ## 5. Arquitectura del sistema
 
 ```
-┌─────────────────┐     HTTP / Jinja      ┌──────────────────┐
-│  Navegador      │ ◄──────────────────► │  Flask (app.py)  │
-│  HTML/CSS/JS    │                      │  Rutas + Login   │
-│  Three.js       │     WebSocket        │                  │
-│  Socket.IO      │ ◄──────────────────► │  Flask-SocketIO  │
-└─────────────────┘                      └────────┬─────────┘
-                                                  │
-                                         ┌────────▼─────────┐
-                                         │  SQLite (ORM)    │
-                                         │  users, services │
-                                         │  bookings, chat  │
-                                         │  salon_info      │
-                                         └──────────────────┘
+┌───────────────────┐   HTTP / Jinja    ┌─────────────────────────────────────┐
+│    Navegador      │ ◄───────────────► │  Gunicorn (Flask) — Railway (Docker)│
+│  HTML/CSS/JS      │                   │  Rutas · Login · SocketIO · /healthz│
+│  Three.js         │   WebSocket       └──────────────┬──────────────────────┘
+│  Socket.IO        │ ◄───────────────►                │
+└───────────────────┘                    ┌─────────────┼──────────────┬──────────────┐
+                                         ▼             ▼              ▼              ▼
+                              ┌─────────────────┐ ┌───────────┐ ┌───────────┐ ┌──────────────┐
+                              │ Supabase        │ │ Supabase  │ │ Twilio    │ │ GitHub       │
+                              │ PostgreSQL 17   │ │ Storage   │ │ WhatsApp  │ │ Actions      │
+                              │ (pooler 5432,   │ │ bucket    │ │ (recordo- │ │ CI · cron    │
+                              │ rol beauty_app, │ │ payment-  │ │ ratorios) │ │ recordatorios│
+                              │ RLS por tabla)  │ │ proofs    │ │           │ │ y backups    │
+                              └─────────────────┘ └───────────┘ └───────────┘ └──────────────┘
 ```
 
-1. El cliente pide `/` → Flask consulta `Service` + `SalonInfo` → renderiza `index.html`.
+1. El cliente pide `/` → Flask consulta `Service` + `Review` + `SalonInfo` → renderiza `index.html`.
 2. Registro/login → Flask-Login guarda la sesión en cookie firmada.
 3. Chat: el cliente emite `send_message` → el servidor valida auth → `chatbot.get_bot_response` → emite `bot_message`.
-4. Reserva: POST `/reservar` → validadores → inserta `Booking`.
+4. Reserva: POST `/reservar` → validadores → hueco libre según **duración** (`availability.py`) → inserta `Booking`.
+5. El arranque (`bootstrap_schema()`) corre `alembic upgrade` + seeds; `/healthz` verifica la conexión a Postgres para el healthcheck de Railway.
 
 ---
 
@@ -156,40 +194,52 @@ Abrí en el navegador: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 ```
 beauty/
-├── app.py                 # Factory Flask, seeds NIO, rutas, SocketIO
-├── chatbot.py             # Motor contextual de Bella (precios C$, Managua)
-├── config.py              # SECRET_KEY, BD, moneda NIO, locale es_NI
-├── models.py              # User, Service, Booking, ChatMessage, SalonInfo
-├── validators.py          # Validación server-side
-├── requirements.txt       # Dependencias pinneadas
-├── README.md              # Esta documentación
+├── app.py                  # Factory Flask, bootstrap (Alembic + seeds), rutas base, SocketIO
+├── config.py               # SECRET_KEY, BD, moneda NIO, pagos, Twilio, fail-fast prod
+├── extensions.py           # db, socketio, login, csrf, limiter, migrate
+├── models.py               # User, Service, ServicePackage, Booking, ChatMessage, Review,
+│                           #   SalonInfo, AuditLog
+├── availability.py         # Agenda por duración: slots, solapes, huecos libres
+├── validators.py           # Validación server-side (nombres, fechas, archivos, ratings)
+├── notifications.py        # Emails, comprobante PDF de reserva, WhatsApp, recordatorios
+├── reminders.py            # Lógica de recordatorios 24 h (collect/send, evita duplicados)
+├── timeutils.py            # Zona horaria America/Managua
+├── chatbot.py              # Motor contextual de Bella (precios C$, Managua)
+├── seeds.py                # Seeds idempotentes (catálogo base con flag is_seed)
+├── supabase_storage.py     # Subida de comprobantes + URLs firmadas (fallback local)
+├── routes_admin.py         # Blueprint /admin (citas, servicios, packs, clientas, CSV…)
+├── routes_account.py       # Blueprint /mi-cuenta (citas, cancelar, comprobante, reseñas)
+├── gunicorn.conf.py        # Bind 0.0.0.0:$PORT (Railway) — sin shell expansion
+├── requirements.txt        # Dependencias de producción
+├── requirements-dev.txt    # pytest + flake8 (dev/CI)
+├── Dockerfile              # Imagen de producción (Railway)
+├── Procfile                # web: gunicorn -c gunicorn.conf.py app:app
+├── railway.json            # Builder Docker + healthcheck /healthz
+├── docker-compose.yml      # Stack completo para desarrollo con Docker
+├── .env.example            # Plantilla de variables (copia a .env)
+├── README.md               # Esta documentación
+├── DEPLOY.md               # Guía de deploy en Railway + secrets de GitHub
+├── SUPABASE_SETUP.md       # Proyecto Supabase: roles, RLS, Storage, backups
+│
+├── migrations/             # Alembic (baseline 9d90adb36db1) — única fuente de verdad
+├── supabase/               # schema.sql de referencia (DBA)
+├── scripts/                # send_reminders.py, migrate_sqlite_to_supabase.py
+├── tests/                  # Suite pytest (features, app, availability, validators)
+├── docs/                   # Documentación histórica + capturas (docs/screenshots/)
+├── .github/workflows/      # ci.yml · reminders.yml · backup.yml
+│
 ├── instance/
-│   └── beauty.db          # SQLite (se crea al arrancar)
+│   └── beauty.db           # SQLite SOLO en local (sin DATABASE_URL)
+│
 ├── templates/
-│   ├── base.html          # Layout: fonts, CSS, Three.js, Socket.IO
-│   ├── index.html         # Landing completa (hero→footer→chat)
-│   └── auth/
-│       ├── login.html
-│       └── register.html
+│   ├── base.html           # Layout: fonts, CSS, Three.js, Socket.IO
+│   ├── index.html          # Landing completa (hero→footer→chat)
+│   ├── auth/  account/  admin/  legal/   # Login, área clienta, panel admin, términos
+│
 └── static/
-    ├── css/style.css      # Tema + animaciones + scrolltelling + chat
-    ├── js/
-    │   ├── main.js        # Nav, reveals, scrolltelling, booking validation
-    │   ├── chat.js        # Socket.IO + gate de autenticación
-    │   ├── scene3d.js     # Partículas 3D interactivas (Three.js)
-    │   └── validation.js  # Validación de formularios auth
-    └── images/
-        ├── hero-beauty.png
-        ├── salon-interior.png
-        └── services/      # 8 imágenes de tratamientos generadas
-            ├── corte-peinado.png
-            ├── coloracion.png
-            ├── manicura-pedicura.png
-            ├── tratamiento-facial.png
-            ├── depilacion-laser.png
-            ├── maquillaje.png
-            ├── spa-bienestar.png
-            └── tratamiento-capilar.png
+    ├── css/style.css       # Tema + animaciones + admin + responsive
+    ├── js/                 # main, chat, scene3d, slots, validation
+    └── images/             # Hero, salón y 8 imágenes de servicios (locales)
 ```
 
 ---
@@ -278,9 +328,22 @@ Las respuestas se persisten en `chat_messages` (sender `user` / `bot`).
 ## 11. Reservas
 
 Formulario en `#reservar` → POST `/reservar`:
-1. Valida nombre, email, teléfono, servicio existente, fecha.
-2. Crea `Booking` (vincula `user_id` si hay sesión).
-3. Flash de éxito y redirect al ancla `#reservar`.
+
+1. Valida nombre, email, teléfono, servicio/pack existente, fecha y hora.
+2. **La disponibilidad depende de la duración**: `availability.py` calcula los huecos del día según `duration_minutes` del servicio o pack elegido y bloquea cualquier opción donde el servicio no quepa antes del cierre. Un servicio de 120 min no se puede agendar a las 17:00 si cierra a las 18:00, y no solapa con la cita siguiente.
+3. Protección contra dobles reservas: índice único parcial `uq_bookings_active_slot` (si dos clientas pisan el mismo hueco, la segunda recibe un error amable).
+4. Crea `Booking` (`status=pending`, anticipo sugerido = 30% del precio si se marcó) y envía el email de confirmación **sin PDF** (el comprobante de reserva se entrega cuando el admin confirma la cita).
+
+### Anticipo y comprobante
+
+- La clienta ve los datos de cuenta (banco, cuenta, beneficiario, teléfono, QR/link si están configurados) en **Mi cuenta → detalle de la cita**.
+- Sube su comprobante de transferencia (PNG/JPG/WEBP/PDF) → se guarda en **Supabase Storage** (bucket privado con URLs firmadas) y el pago queda `pending_transfer`.
+- El admin valida y marca `paid` desde el panel.
+
+### Después de la cita
+
+- Si `status=completed`, la clienta puede dejar una **reseña** (1–5 estrellas + comentario); el admin la aprueba y se publica en la portada.
+- 24 h antes de la cita corre el **recordatorio automático** por WhatsApp (Twilio) con email de respaldo (`reminder_sent_at` evita duplicados).
 
 Fecha mínima = hoy (seteada en `main.js`).
 
@@ -319,25 +382,59 @@ Si una URL fallara, `onerror` en las plantillas cae a `salon-interior.png` o `he
 
 | Modelo | Tabla | Rol |
 |--------|-------|-----|
-| `User` | `users` | Cuentas (hash password, phone +505) |
-| `Service` | `services` | Catálogo NIO + `image_url` + `currency` |
-| `Booking` | `bookings` | Solicitudes de cita |
-| `ChatMessage` | `chat_messages` | Historial del chat |
+| `User` | `users` | Cuentas (hash password, phone +505, `is_admin`) |
+| `Service` | `services` | Catálogo NIO + `duration_minutes`, `image_url`, `currency`, `quote_only` |
+| `ServicePackage` | `service_packages` | Packs regalables con `duration_minutes`, `includes`, `price` |
+| `Booking` | `bookings` | Cita: fechas/horas, `status`, `payment_status`, `payment_proof`, `deposit_amount`, `admin_notes`, `reminder_sent_at` |
+| `ChatMessage` | `chat_messages` | Historial del chat (sender `user`/`bot`) |
+| `Review` | `reviews` | Reseña 1–5 de una cita completada; solo se publica con `is_approved` |
 | `SalonInfo` | `salon_info` | Key/value (dirección, horarios, textos) |
+| `AuditLog` | `audit_logs` | Auditoría de acciones del admin |
 
-Migraciones ligeras en `migrate_schema()` añaden `image_url`, `currency`, `user_id` si faltan.
+El esquema lo gestiona **Alembic** (`migrations/`, baseline `9d90adb36db1`): al arrancar corre `alembic upgrade` de forma idempotente; los seeds (`seeds.py`) solo crean/actualizan filas con `is_seed=True` y nunca borran datos reales. No existe `migrate_schema()`.
 
 ---
 
 ## 15. Rutas HTTP
 
+### Públicas / auth (`app.py`)
+
 | Método | Ruta | Vista | Descripción |
 |--------|------|-------|-------------|
 | GET | `/` | `index` | Landing completa |
+| GET | `/healthz` | `healthz` | Healthcheck JSON (verifica Postgres) — lo usa Railway |
+| GET | `/api/slots?date=…&service=…` | `api_slots` | Huecos libres del día (según duración) |
 | GET/POST | `/registro` | `register` | Alta de usuaria |
 | GET/POST | `/login` | `login` | Inicio de sesión |
 | GET | `/logout` | `logout` | Cierre de sesión |
+| GET/POST | `/recuperar` | `forgot_password` | Solicitud de restablecimiento |
+| GET/POST | `/restablecer/<token>` | `reset_password` | Nueva contraseña por token |
 | POST | `/reservar` | `reservar` | Alta de booking |
+| GET | `/privacidad` · `/terminos` | — | Legales |
+
+### Área de clienta (`/mi-cuenta`, `routes_account.py`)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/mi-cuenta/` | Dashboard: mis citas, stats, pago |
+| GET | `/mi-cuenta/cita/<id>` | Detalle de la cita + subir comprobante |
+| POST | `/mi-cuenta/cita/<id>/cancelar` | Cancelar cita |
+| GET/POST | `/mi-cuenta/cita/<id>/reprogramar` | Reprogramar (valida hueco) |
+| POST | `/mi-cuenta/cita/<id>/comprobante` | Subir comprobante de anticipo |
+| POST | `/mi-cuenta/cita/<id>/resena` | Dejar reseña (solo citas completadas) |
+
+### Panel admin (`/admin`, `routes_admin.py`)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/admin/` | Dashboard con métricas y citas recientes |
+| GET/POST | `/admin/citas` | Gestión de citas (estado, pago, notas) + paginación |
+| GET | `/admin/citas/export.csv` | Export CSV |
+| GET/POST | `/admin/servicios` · `/admin/packs` | CRUD de catálogo |
+| GET/POST | `/admin/resenas` | Aprobar/ocultar reseñas |
+| GET | `/admin/clientas` · `/admin/clienta/<id>` | Listado y ficha con historial |
+| GET | `/admin/comprobante/<id>` | Ver comprobante (URL firmada) |
+| GET | `/admin/chats` | Historial de conversaciones |
 
 ---
 
@@ -415,7 +512,7 @@ Variables principales (el listado completo está en `.env.example`):
 | `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | — | Storage de comprobantes |
 | `MAIL_*`, `TWILIO_*` | — | Email + WhatsApp (recordatorios) |
 | `BANK_NAME` / `BANK_ACCOUNT` / `BANK_HOLDER` | demo | Datos de la cuenta para el anticipo (se muestran en Mi cuenta) |
-| `PAYMENT_PHONE` / `PAYMENT_REFERENCE` | — | PagoMóvil y referencia (opcionales) |
+| `PAYMENT_PHONE` / `PAYMENT_REFERENCE` | — | Teléfono que recibe la transferencia y texto de referencia (opcionales) |
 | `PAYMENT_LINK` | — | Botón «Pagar en línea» junto al comprobante |
 | `PAYMENT_QR_URL` | — | Imagen del QR de pago (o archivo `static/img/qr-pago.png`) |
 | `SENTRY_DSN` | — | Errores en prod (opcional) |
@@ -471,10 +568,13 @@ Beauty **no afirma afiliación** con esas marcas; las usa como referencia de mer
 |---------|----------------|----------|
 | Chat no responde | No hay sesión | Registrate / iniciá sesión |
 | `auth_required` | Cookie expirada | Volvé a loguearte |
-| Precios en € | BD vieja sin re-seed | Borrá `instance/beauty.db` y reiniciá `py app.py` |
+| Precios viejos **en local** | SQLite desactualizada | Borrá `instance/beauty.db` y reiniciá `py app.py` (⚠️ solo aplica en local; en producción el esquema lo maneja Alembic, no borres nada) |
+| `healthz` en 500 / `database: error` en Railway | `DATABASE_URL` mal o credenciales viejas | Verificá la variable en Railway (rol `beauty_app` del pooler, puerto 5432) y los logs de arranque; si cambiaste de proyecto Supabase, actualizá también `SUPABASE_URL`/`SUPABASE_SECRET_KEY` |
+| Deploy fallido con healthcheck | La app no levantó | Mirá los logs de Railway: si dice `${PORT}` o bind, revisá que **Settings → Custom Start Command** esté vacío (manda `Procfile`/`Dockerfile`); si es error de migración, revisá `alembic upgrade` en los logs |
+| `Fallo subiendo comprobante` | Storage sin configurar | La app cae a disco local (`UPLOAD_FOLDER`); configurá `SUPABASE_URL` + `SUPABASE_SECRET_KEY` para usar Storage |
 | Imágenes rotas | Ruta incorrecta | Verificá `static/images/services/*.png` |
 | Sin 3D | WebGL / Three no cargó | Revisá consola; usá Chrome/Edge actualizado |
-| Puerto ocupado | Otro proceso en 5000 | Cambiá el puerto en `socketio.run(...)` |
+| Puerto ocupado | Otro proceso en 5000 | Cambiá el puerto en `socketio.run(...)` o con `$env:PORT=5001` |
 
 ---
 
@@ -483,11 +583,25 @@ Beauty **no afirma afiliación** con esas marcas; las usa como referencia de mer
 - ✅ Panel admin para editar precios NIO sin tocar código (incluye duración y packs).
 - ✅ Recordatorios automáticos WhatsApp 24 h antes (Twilio + email, cron diario).
 - ✅ Alembic para migraciones formales (baseline + stamp en Supabase).
-- ✅ Tests automatizados (80 pytest) + CI en GitHub Actions.
+- ✅ Tests automatizados (pytest + flake8) + CI en GitHub Actions.
 - ✅ Deploy en Railway (Docker + healthcheck `/healthz`), backups diarios de la BD.
-- 🔜 Pagos: link/QR además de transferencia (decidido postergar).
+- ✅ Link/QR de pago configurable por `.env` (junto al flujo de transferencia con comprobante).
 - 🔜 SEO local (Google Business Profile, sitemap, OG images).
 - 🔜 Modelo de personal (varias estilistas) cuando se valide la demanda.
+
+---
+
+## Documentación adicional
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`DEPLOY.md`](DEPLOY.md) | Guía paso a paso de deploy en Railway + secrets de GitHub |
+| [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md) | Proyecto Supabase: pooler, rol `beauty_app`, RLS, Storage, backups |
+| [`TESTING_GUIDE.md`](TESTING_GUIDE.md) | Manual de pruebas manuales del flujo completo |
+| [`docs/PLAN_MEJORAS.md`](docs/PLAN_MEJORAS.md) | Plan de mejoras y estado del backlog |
+| [`docs/README_COMPLETO.md`](docs/README_COMPLETO.md) | Documentación integral histórica |
+| [`docs/IMPLEMENTACION_COMPLETA.md`](docs/IMPLEMENTACION_COMPLETA.md) | Detalle de implementación por fase |
+| [`docs/RESUMEN_EJECUTIVO.txt`](docs/RESUMEN_EJECUTIVO.txt) | Resumen ejecutivo en texto plano |
 
 ---
 

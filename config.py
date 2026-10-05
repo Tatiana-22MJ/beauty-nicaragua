@@ -136,7 +136,7 @@ class Config:
     BANK_ACCOUNT = os.environ.get("BANK_ACCOUNT", "XXXX-XXXX-XXXX-1234")
     BANK_HOLDER = os.environ.get("BANK_HOLDER", "Beauty Nicaragua S.A.")
 
-    # Datos de pago adicionales (opcionales): PagoMóvil, link y QR
+    # Datos de pago adicionales (opcionales): teléfono, link y QR
     PAYMENT_PHONE = os.environ.get("PAYMENT_PHONE", "").strip()
     PAYMENT_REFERENCE = os.environ.get("PAYMENT_REFERENCE", "").strip()
     PAYMENT_LINK = os.environ.get("PAYMENT_LINK", "").strip()

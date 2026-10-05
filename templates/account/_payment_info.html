@@ -1,10 +1,10 @@
-{# Datos de pago compartidos: banco, PagoMóvil, QR y link (config vía .env) #}
+{# Datos de pago compartidos: banco, teléfono, QR y link (config vía .env) #}
 <ul class="payment-info-list" style="font-size: 0.9rem; margin-bottom: 1rem; list-style: none; padding: 0;">
   <li><strong>Banco:</strong> {{ payment.bank_name }}</li>
   <li><strong>Cuenta:</strong> {{ payment.bank_account }}</li>
   <li><strong>Beneficiario:</strong> {{ payment.bank_holder }}</li>
   {% if payment.phone %}
-    <li><strong>PagoMóvil:</strong> {{ payment.phone }}</li>
+    <li><strong>Transferencia a:</strong> {{ payment.phone }}</li>
   {% endif %}
   {% if payment.reference %}
     <li><strong>Referencia:</strong> {{ payment.reference }}</li>
