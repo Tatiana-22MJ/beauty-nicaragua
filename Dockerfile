@@ -27,5 +27,6 @@ ENV PYTHONUNBUFFERED=1
 ENV TZ=America/Managua
 
 # Run gunicorn (worker gthread = coherente con SocketIO async_mode threading).
-# $PORT lo define la plataforma (Railway/Render); en local cae a 5000.
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 4 --timeout 60 --worker-class gthread app:app"]
+# El puerto ($PORT de la plataforma) lo lee Python desde gunicorn.conf.py:
+# no hace falta expansión de shell, así funciona en Railway/Render/Procfile.
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
