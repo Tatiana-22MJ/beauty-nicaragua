@@ -1,5 +1,11 @@
 # Beauty Nicaragua — Documentación exhaustiva
 
+[![CI Tests & Linting](https://github.com/Tatiana-22MJ/beauty-nicaragua/actions/workflows/ci.yml/badge.svg)](https://github.com/Tatiana-22MJ/beauty-nicaragua/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-80%20passed-brightgreen)](#4-instalación-y-ejecución)
+[![Deploy](https://img.shields.io/badge/deploy-Railway-8b5cf6)](https://web-production-6419f.up.railway.app)
+
+> 🌐 **En producción:** **https://web-production-6419f.up.railway.app** · Backend Flask (Docker) en Railway + Supabase (Postgres 17 + Storage) en `us-east-1`.
+
 **Beauty** es una aplicación web full stack de salón / spa médico localizada para **Managua, Nicaragua**, con precios en **Córdobas (C$ / NIO)**, chat en tiempo real restringido a usuarias autenticadas, animaciones buttery-smooth, narración con scroll (scrolltelling), renderizado 3D interactivo y catálogo de tratamientos alineado al mercado estético nicaragüense.
 
 ---
@@ -38,13 +44,30 @@
 | Aspecto | Detalle |
 |--------|---------|
 | Producto | Landing + reservas + chat de salón Beauty |
+| Estado | ✅ **En producción** (octubre 2026) — 80 tests + CI verde |
 | Mercado | Nicaragua (Managua) |
 | Moneda | Córdobas nicaragüenses (`NIO`, símbolo `C$`) |
-| Backend | Flask 3 + SQLAlchemy + Flask-Login + Flask-SocketIO |
+| Backend | Flask 3 + SQLAlchemy + Flask-Login + Flask-SocketIO (Gunicorn `gthread`) |
 | Frontend | HTML5 semántico, CSS custom, JS vanilla, Three.js, Socket.IO |
-| BD | SQLite (`instance/beauty.db`) |
+| BD | **Supabase PostgreSQL 17** (rol `beauty_app`, RLS; SQLite solo en local/tests) |
+| Storage | **Supabase Storage** (bucket privado `payment-proofs`, URLs firmadas) |
+| Migraciones | **Alembic** (baseline `9d90adb36db1`, única fuente de verdad del esquema) |
+| Deploy | **Railway** (Docker, healthcheck `/healthz`) — [demo](https://web-production-6419f.up.railway.app) |
+| CI/CD | GitHub Actions: pytest (80) + flake8, recordatorios diarios y backups de BD |
 | Chat | Solo usuarias **registradas / autenticadas** |
 | Visual | Hero full-bleed, scrolltelling, partículas 3D, imágenes locales |
+
+### Integraciones de esta versión (octubre 2026)
+
+- ✅ **Agenda por duración** — slots y solapes según `duration_minutes` de servicios y packs (nada de tratar todo como 60 min).
+- ✅ **Reseñas** — la clienta reseña sus citas completadas, el admin aprueba y se publican en la portada (SEO local).
+- ✅ **Recordatorios WhatsApp 24 h** — Twilio + email de respaldo, cron diario 07:00 Managua (GitHub Actions), marca `reminder_sent_at` y evita duplicados.
+- ✅ **Admin completo** — paginación de citas, **export CSV**, listado y ficha de clienta con historial, gestión de reseñas, packs con duración.
+- ✅ **Supabase Fase 1** — Postgres + Storage con fallback local, rol dedicado `beauty_app` (mínimos privilegios) + RLS con policy por tabla.
+- ✅ **Alembic** — migraciones formales (sin `create_all` en producción), seeds idempotentes con flag `is_seed`.
+- ✅ **Observabilidad** — `/healthz` (DB check), Sentry opcional (`SENTRY_DSN`), logs JSON (`LOG_FORMAT=json`).
+- ✅ **CI + backups** — tests en cada push; `pg_dump` diario → bucket privado `backups` + artifact de 14 días.
+- 🔗 Pendiente de producto: link/QR de pago (decidido postergar), SEO local, modelo de personal.
 
 ---
 
@@ -52,9 +75,16 @@
 
 ### Backend
 - **Flask** — framework web y enrutado.
-- **Flask-SQLAlchemy** — ORM sobre SQLite.
+- **Flask-SQLAlchemy** — ORM (Postgres en producción, SQLite en local/tests).
+- **psycopg 3** — driver PostgreSQL (Supabase pooler, puerto 5432).
+- **Alembic (Flask-Migrate)** — migraciones versionadas del esquema.
 - **Flask-Login** — sesiones de usuario y `@login_required`.
 - **Flask-SocketIO** — WebSockets para el chat en tiempo real.
+- **Flask-Limiter** — rate limiting por IP/ruta.
+- **Gunicorn** (`gthread`) — servidor de producción, puerto desde `gunicorn.conf.py`.
+- **Supabase Storage** — comprobantes de pago en bucket privado con URLs firmadas.
+- **Twilio** — WhatsApp para recordatorios de cita (con fallback a link `wa.me`).
+- **Sentry** — tracking de errores en producción (opcional).
 - **Werkzeug** — hash de contraseñas (`generate_password_hash` / `check_password_hash`).
 
 ### Frontend
