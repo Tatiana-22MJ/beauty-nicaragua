@@ -1,0 +1,18 @@
+{# Datos de pago compartidos: banco, PagoMóvil, QR y link (config vía .env) #}
+<ul class="payment-info-list" style="font-size: 0.9rem; margin-bottom: 1rem; list-style: none; padding: 0;">
+  <li><strong>Banco:</strong> {{ payment.bank_name }}</li>
+  <li><strong>Cuenta:</strong> {{ payment.bank_account }}</li>
+  <li><strong>Beneficiario:</strong> {{ payment.bank_holder }}</li>
+  {% if payment.phone %}
+    <li><strong>PagoMóvil:</strong> {{ payment.phone }}</li>
+  {% endif %}
+  {% if payment.reference %}
+    <li><strong>Referencia:</strong> {{ payment.reference }}</li>
+  {% endif %}
+</ul>
+{% if payment.qr %}
+  <img src="{{ payment.qr }}" alt="QR para pagar el anticipo" style="max-width: 180px; height: auto; border-radius: 8px; margin-bottom: 1rem;">
+{% endif %}
+{% if payment.link %}
+  <a href="{{ payment.link }}" class="btn btn-primary btn-full" target="_blank" rel="noopener" style="margin-bottom: 1rem;">🔗 Pagar en línea</a>
+{% endif %}

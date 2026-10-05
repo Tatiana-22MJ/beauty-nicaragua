@@ -80,11 +80,7 @@
           <p style="font-size: 0.9rem; margin-bottom: 1rem;">
             Por favor, transfiere el anticipo sugerido de <strong>{{ booking.deposit_amount|nio }}</strong> a nuestra cuenta:
           </p>
-          <ul style="font-size: 0.9rem; margin-bottom: 1rem; list-style: none; padding: 0;">
-            <li><strong>Banco:</strong> BAC Credomatic</li>
-            <li><strong>Cuenta:</strong> XXXX-XXXX-XXXX-1234</li>
-            <li><strong>Beneficiario:</strong> Beauty Nicaragua S.A.</li>
-          </ul>
+          {% include 'account/_payment_info.html' %}
           
           <form method="post" action="{{ url_for('account.upload_proof', booking_id=booking.id) }}" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

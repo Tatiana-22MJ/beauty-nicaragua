@@ -136,6 +136,12 @@ class Config:
     BANK_ACCOUNT = os.environ.get("BANK_ACCOUNT", "XXXX-XXXX-XXXX-1234")
     BANK_HOLDER = os.environ.get("BANK_HOLDER", "Beauty Nicaragua S.A.")
 
+    # Datos de pago adicionales (opcionales): PagoMóvil, link y QR
+    PAYMENT_PHONE = os.environ.get("PAYMENT_PHONE", "").strip()
+    PAYMENT_REFERENCE = os.environ.get("PAYMENT_REFERENCE", "").strip()
+    PAYMENT_LINK = os.environ.get("PAYMENT_LINK", "").strip()
+    PAYMENT_QR_URL = os.environ.get("PAYMENT_QR_URL", "").strip()
+
     # Rate limits (flask-limiter). En producción con >1 worker usar Redis:
     #   RATELIMIT_STORAGE_URI=redis://localhost:6379/0
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")

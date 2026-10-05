@@ -414,6 +414,10 @@ Variables principales (el listado completo está en `.env.example`):
 | `DATABASE_URL` | `sqlite:///…/instance/beauty.db` | URI SQLAlchemy (en prod: rol `beauty_app` de Supabase) |
 | `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | — | Storage de comprobantes |
 | `MAIL_*`, `TWILIO_*` | — | Email + WhatsApp (recordatorios) |
+| `BANK_NAME` / `BANK_ACCOUNT` / `BANK_HOLDER` | demo | Datos de la cuenta para el anticipo (se muestran en Mi cuenta) |
+| `PAYMENT_PHONE` / `PAYMENT_REFERENCE` | — | PagoMóvil y referencia (opcionales) |
+| `PAYMENT_LINK` | — | Botón «Pagar en línea» junto al comprobante |
+| `PAYMENT_QR_URL` | — | Imagen del QR de pago (o archivo `static/img/qr-pago.png`) |
 | `SENTRY_DSN` | — | Errores en prod (opcional) |
 | `LOG_FORMAT` | `text` | `json` para logs estructurados en prod |
 | `FLASK_ENV` | `development` | `production` activa fail-fast de secretos |

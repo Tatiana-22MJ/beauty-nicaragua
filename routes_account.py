@@ -53,9 +53,6 @@ def dashboard():
         },
         upcoming_booking=upcoming,
         wa_link=whatsapp_link(f"Hola, soy {current_user.full_name}. Consulto sobre mi cita."),
-        bank_name=current_app.config["BANK_NAME"],
-        bank_account=current_app.config["BANK_ACCOUNT"],
-        bank_holder=current_app.config["BANK_HOLDER"],
     )
 
 

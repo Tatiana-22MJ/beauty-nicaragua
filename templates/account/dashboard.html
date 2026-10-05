@@ -29,7 +29,7 @@
 
     <aside class="account-bank reveal visible">
       <h2>Anticipo por transferencia</h2>
-      <p>{{ bank_holder }} · {{ bank_name }} · {{ bank_account }}</p>
+      {% include 'account/_payment_info.html' %}
       <p>Luego subí el comprobante en la cita correspondiente.</p>
       <div class="account-bank-actions">
         <a class="btn btn-ghost" href="{{ wa_link }}" target="_blank" rel="noopener">WhatsApp</a>

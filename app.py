@@ -173,6 +173,9 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_globals():
+        qr_src = app.config.get("PAYMENT_QR_URL", "")
+        if not qr_src and (Path(app.static_folder) / "img" / "qr-pago.png").is_file():
+            qr_src = url_for("static", filename="img/qr-pago.png")
         return {
             "current_year": datetime.now(timezone.utc).year,
             "currency_symbol": app.config.get("CURRENCY_SYMBOL", "C$"),
@@ -180,6 +183,15 @@ def create_app(config_class=Config):
             "country_name": app.config.get("COUNTRY_NAME", "Nicaragua"),
             "whatsapp_url": whatsapp_link(),
             "csrf_enabled": app.config.get("WTF_CSRF_ENABLED", True),
+            "payment": {
+                "bank_name": app.config.get("BANK_NAME", ""),
+                "bank_account": app.config.get("BANK_ACCOUNT", ""),
+                "bank_holder": app.config.get("BANK_HOLDER", ""),
+                "phone": app.config.get("PAYMENT_PHONE", ""),
+                "reference": app.config.get("PAYMENT_REFERENCE", ""),
+                "link": app.config.get("PAYMENT_LINK", ""),
+                "qr": qr_src,
+            },
         }
 
     @app.template_filter("nio")

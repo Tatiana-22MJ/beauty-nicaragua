@@ -170,11 +170,23 @@ def notify_booking_created(booking) -> None:
         f"Mi nombre es {booking.full_name} y mi teléfono es {booking.phone}."
     )
     whatsapp_url = whatsapp_link(whatsapp_text, current_app.config.get("WHATSAPP_NUMBER", "50576721749"))
+    pago_lines = (
+        f"Banco: {current_app.config.get('BANK_NAME', '')} · "
+        f"Cuenta: {current_app.config.get('BANK_ACCOUNT', '')} · "
+        f"Beneficiario: {current_app.config.get('BANK_HOLDER', '')}"
+    )
+    if current_app.config.get("PAYMENT_PHONE"):
+        pago_lines += f"\nPagoMóvil: {current_app.config['PAYMENT_PHONE']}"
+    if current_app.config.get("PAYMENT_REFERENCE"):
+        pago_lines += f"\nReferencia: {current_app.config['PAYMENT_REFERENCE']}"
+    if current_app.config.get("PAYMENT_LINK"):
+        pago_lines += f"\nPagar en línea: {current_app.config['PAYMENT_LINK']}"
     client_body = (
         f"Hola {booking.full_name},\n\n"
         f"Recibimos tu solicitud de cita para «{title}» el {when}.\n"
         f"Estado: {booking.status}. Pago: {booking.payment_status}.\n"
-        f"Anticipo sugerido: C$ {booking.deposit_amount:,.0f}.\n\n"
+        f"Anticipo sugerido: C$ {booking.deposit_amount:,.0f}.\n"
+        f"{pago_lines}\n\n"
         f"Te confirmaremos pronto. También podés escribirnos por WhatsApp usando este enlace:\n"
         f"{whatsapp_url}\n\n"
         f"Cuando confirmemos la cita te enviaremos tu comprobante PDF de reserva.\n"

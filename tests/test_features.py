@@ -309,6 +309,50 @@ def test_usuarios_admin_y_clientas_separados(app):
         assert User.query.filter_by(is_admin=True).count() >= 1
 
 
+class TestPagoQR:
+    """Datos de pago configurables por .env (no hardcodeados en templates)."""
+
+    @staticmethod
+    def _ver_detalle(app, client, username, **config):
+        for key, value in config.items():
+            app.config[key] = value
+        uid = make_user(app, username, "Clave1234")
+        login(client, username, "Clave1234")
+        bid = _mk_booking(app, _next_monday(), "14:00", user_id=uid)
+        return client.get(f"/mi-cuenta/cita/{bid}")
+
+    def test_cuenta_bancaria_configurable(self, app, client):
+        rv = self._ver_detalle(
+            app, client, "pago_cfg", BANK_ACCOUNT="TEST-9999", BANK_HOLDER="Otra Dueña"
+        )
+        assert rv.status_code == 200
+        assert b"TEST-9999" in rv.data
+        assert "Otra Dueña".encode() in rv.data
+
+    def test_link_y_qr_se_muestran_si_estan_configurados(self, app, client):
+        rv = self._ver_detalle(
+            app,
+            client,
+            "pago_link",
+            PAYMENT_LINK="https://pay.example/x",
+            PAYMENT_QR_URL="https://img.example/qr.png",
+            PAYMENT_PHONE="8888-7777",
+            PAYMENT_REFERENCE="Usa tu cedula",
+        )
+        assert b"https://pay.example/x" in rv.data
+        assert b"https://img.example/qr.png" in rv.data
+        assert b"8888-7777" in rv.data
+        assert b"Usa tu cedula" in rv.data
+
+    def test_link_y_qr_ocultos_sin_configurar(self, app, client):
+        rv = self._ver_detalle(
+            app, client, "pago_vacio", PAYMENT_LINK="", PAYMENT_QR_URL=""
+        )
+        assert rv.status_code == 200
+        assert "Pagar en línea".encode() not in rv.data
+        assert b"qr-pago" not in rv.data
+
+
 class TestComprobanteSoloAlConfirmar:
     """El PDF de reserva NO se entrega al reservar: recién al confirmar."""
 
