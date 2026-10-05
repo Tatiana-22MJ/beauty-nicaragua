@@ -1,0 +1,10 @@
+{# Badges en español para estados de cita y de pago (admin) #}
+{% macro estado(s) -%}
+  {%- set mapa = {'pending': 'Pendiente', 'confirmed': 'Confirmada', 'reschedule': 'Reprogramada', 'cancelled': 'Cancelada', 'completed': 'Completada'} -%}
+  <span class="badge badge-{{ s }}">{{ mapa.get(s, s) }}</span>
+{%- endmacro %}
+
+{% macro pago(s) -%}
+  {%- set mapa = {'unpaid': 'Sin pagar', 'pending_transfer': 'Comprobante pendiente', 'paid': 'Pagado'} -%}
+  <span class="badge badge-{{ s }}">{{ mapa.get(s, s) }}</span>
+{%- endmacro %}

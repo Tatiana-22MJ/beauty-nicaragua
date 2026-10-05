@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Admin — Beauty Nicaragua{% endblock %}
+{% from "admin/_badges.html" import estado, pago %}
 {% block body %}
 <div class="admin-shell">
   {% include "admin/_nav.html" %}
@@ -20,8 +21,16 @@
     {% endwith %}
 
     <div class="admin-stats">
-      <article><strong>{{ stats.bookings_pending }}</strong><span>Pendientes</span></article>
-      <article><strong>{{ stats.bookings_confirmed }}</strong><span>Confirmadas</span></article>
+      <article>
+        <a href="{{ url_for('admin.bookings', status='pending') }}">
+          <strong>{{ stats.bookings_pending }}</strong><span>Pendientes</span>
+        </a>
+      </article>
+      <article>
+        <a href="{{ url_for('admin.bookings', status='confirmed') }}">
+          <strong>{{ stats.bookings_confirmed }}</strong><span>Confirmadas</span>
+        </a>
+      </article>
       <article><strong>{{ stats.payments_pending }}</strong><span>Pagos a validar</span></article>
       <article><strong>{{ stats.services }}</strong><span>Servicios</span></article>
       <article><strong>{{ stats.users }}</strong><span>Usuarias</span></article>
@@ -41,8 +50,8 @@
             <td>{{ b.full_name }}</td>
             <td>{{ b.title }}</td>
             <td>{{ b.preferred_date }} {{ b.preferred_time }}</td>
-            <td><span class="badge badge-{{ b.status }}">{{ b.status }}</span></td>
-            <td>{{ b.payment_status }}</td>
+            <td>{{ estado(b.status) }}</td>
+            <td>{{ pago(b.payment_status) }}</td>
           </tr>
           {% else %}
           <tr><td colspan="6">Sin citas aún.</td></tr>

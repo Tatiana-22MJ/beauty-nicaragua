@@ -10,7 +10,7 @@
       <h3>Sesión {{ sid[:10] }}… {% if msgs[0].user_id and users.get(msgs[0].user_id) %}· {{ users[msgs[0].user_id].full_name }}{% endif %}</h3>
       <div class="admin-chat-thread">
         {% for m in msgs %}
-        <p class="chat-line chat-line-{{ m.sender }}"><strong>{{ m.sender }}:</strong> {{ m.content }}</p>
+        <p class="chat-line chat-line-{{ m.sender }}"><strong>{{ {'user': 'Clienta', 'bot': 'Bella'}.get(m.sender, m.sender) }}:</strong> {{ m.content }}</p>
         {% endfor %}
       </div>
     </article>

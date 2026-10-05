@@ -353,6 +353,30 @@ class TestPagoQR:
         assert b"qr-pago" not in rv.data
 
 
+class TestAdminUI:
+    """La UI del admin traduce estados a español y usa badges con estilo."""
+
+    def test_dashboard_badges_en_espanol(self, app, client):
+        make_user(app, "admin_ui", "Clave1234", is_admin=True)
+        login(client, "admin_ui", "Clave1234")
+        _mk_booking(app, _next_monday(), "15:00", status="confirmed")
+        rv = client.get("/admin/")
+        assert rv.status_code == 200
+        assert "Confirmada".encode() in rv.data
+        assert b"badge badge-confirmed" in rv.data
+        assert b">pending<" not in rv.data
+
+    def test_citas_filtro_y_opciones_en_espanol(self, app, client):
+        make_user(app, "admin_ui2", "Clave1234", is_admin=True)
+        login(client, "admin_ui2", "Clave1234")
+        _mk_booking(app, _next_monday(), "15:00", status="confirmed")
+        rv = client.get("/admin/citas")
+        assert rv.status_code == 200
+        assert "Pendiente".encode() in rv.data
+        assert "Sin pagar".encode() in rv.data
+        assert b">unpaid<" not in rv.data
+
+
 class TestComprobanteSoloAlConfirmar:
     """El PDF de reserva NO se entrega al reservar: recién al confirmar."""
 

@@ -1,13 +1,13 @@
 <aside class="admin-nav" aria-label="Admin">
   <a class="logo" href="{{ url_for('index') }}">Beauty<span>.</span></a>
   <p class="admin-nav-label">Administración</p>
-  <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-  <a href="{{ url_for('admin.bookings') }}">Citas</a>
-  <a href="{{ url_for('admin.services') }}">Servicios</a>
-  <a href="{{ url_for('admin.packages') }}">Packs</a>
-  <a href="{{ url_for('admin.reviews') }}">Reseñas</a>
-  <a href="{{ url_for('admin.clients') }}">Clientas</a>
-  <a href="{{ url_for('admin.chats') }}">Chats</a>
-  <a href="{{ url_for('account.dashboard') }}">Mi cuenta</a>
+  <a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}class="active"{% endif %}>Dashboard</a>
+  <a href="{{ url_for('admin.bookings') }}" {% if request.endpoint in ('admin.bookings', 'admin.ver_comprobante', 'admin.export_bookings_csv') %}class="active"{% endif %}>Citas</a>
+  <a href="{{ url_for('admin.services') }}" {% if request.endpoint == 'admin.services' %}class="active"{% endif %}>Servicios</a>
+  <a href="{{ url_for('admin.packages') }}" {% if request.endpoint == 'admin.packages' %}class="active"{% endif %}>Packs</a>
+  <a href="{{ url_for('admin.reviews') }}" {% if request.endpoint == 'admin.reviews' %}class="active"{% endif %}>Reseñas</a>
+  <a href="{{ url_for('admin.clients') }}" {% if request.endpoint in ('admin.clients', 'admin.client_detail') %}class="active"{% endif %}>Clientas</a>
+  <a href="{{ url_for('admin.chats') }}" {% if request.endpoint == 'admin.chats' %}class="active"{% endif %}>Chats</a>
+  <a href="{{ url_for('account.dashboard') }}" {% if request.endpoint == 'account.dashboard' %}class="active"{% endif %}>Mi cuenta</a>
   <a href="{{ url_for('logout') }}">Salir</a>
 </aside>

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Admin · Ficha de clienta — Beauty{% endblock %}
+{% from "admin/_badges.html" import estado, pago %}
 {% block body %}
 <div class="admin-shell">
   {% include "admin/_nav.html" %}
@@ -33,7 +34,7 @@
         <div>
           <h3>#{{ b.id }} · {{ b.title }}</h3>
           <p>{{ b.preferred_date }} {{ b.preferred_time }} ·
-            <span class="badge badge-{{ b.status }}">{{ b.status }}</span> · pago: {{ b.payment_status }}</p>
+            {{ estado(b.status) }} · {{ pago(b.payment_status) }}</p>
           <p class="muted">{{ b.message or 'Sin mensaje' }}</p>
         </div>
         <a class="btn btn-ghost" href="{{ url_for('admin.bookings') }}">Ver en citas</a>

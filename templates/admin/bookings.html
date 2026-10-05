@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Admin · Citas — Beauty{% endblock %}
+{% from "admin/_badges.html" import estado, pago %}
+{% set estado_map = {'pending': 'Pendiente', 'confirmed': 'Confirmada', 'reschedule': 'Reprogramada', 'cancelled': 'Cancelada', 'completed': 'Completada'} %}
+{% set pago_map = {'unpaid': 'Sin pagar', 'pending_transfer': 'Comprobante pendiente', 'paid': 'Pagado'} %}
 {% block body %}
 <div class="admin-shell">
   {% include "admin/_nav.html" %}
@@ -10,7 +13,7 @@
         <select name="status" onchange="this.form.submit()">
           <option value="">Todas</option>
           {% for s in ['pending','confirmed','reschedule','cancelled','completed'] %}
-          <option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>
+          <option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ estado_map[s] }}</option>
           {% endfor %}
         </select>
         <a class="btn btn-ghost" href="{{ url_for('admin.export_bookings_csv', status=status_filter) }}">⬇ Exportar CSV</a>
@@ -24,7 +27,7 @@
     {% for b in bookings %}
     <article class="admin-card">
       <div>
-        <h3>#{{ b.id }} · {{ b.title }}</h3>
+        <h3>#{{ b.id }} · {{ b.title }} {{ estado(b.status) }} {{ pago(b.payment_status) }}</h3>
         <p>{{ b.full_name }} · {{ b.email }} · {{ b.phone }}</p>
         <p>{{ b.preferred_date }} {{ b.preferred_time }} · Anticipo {{ b.deposit_amount|nio }}</p>
         <p>{{ b.message or 'Sin mensaje' }}{% if b.payment_proof %} · <a href="{{ url_for('admin.ver_comprobante', booking_id=b.id) }}" target="_blank" rel="noopener">📎 Ver comprobante</a>{% endif %}</p>
@@ -35,14 +38,14 @@
         <label>Estado
           <select name="status">
             {% for s in ['pending','confirmed','reschedule','cancelled','completed'] %}
-            <option value="{{ s }}" {% if b.status==s %}selected{% endif %}>{{ s }}</option>
+            <option value="{{ s }}" {% if b.status==s %}selected{% endif %}>{{ estado_map[s] }}</option>
             {% endfor %}
           </select>
         </label>
         <label>Pago
           <select name="payment_status">
             {% for s in ['unpaid','pending_transfer','paid'] %}
-            <option value="{{ s }}" {% if b.payment_status==s %}selected{% endif %}>{{ s }}</option>
+            <option value="{{ s }}" {% if b.payment_status==s %}selected{% endif %}>{{ pago_map[s] }}</option>
             {% endfor %}
           </select>
         </label>
