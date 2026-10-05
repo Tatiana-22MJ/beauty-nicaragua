@@ -4,6 +4,7 @@
 
 from datetime import date, timedelta
 
+import notifications
 from availability import available_slots, is_slot_free
 from extensions import db
 from models import Booking, Review, Service, User
@@ -306,3 +307,52 @@ class TestObservabilidad:
 def test_usuarios_admin_y_clientas_separados(app):
     with app.app_context():
         assert User.query.filter_by(is_admin=True).count() >= 1
+
+
+class TestComprobanteSoloAlConfirmar:
+    """El PDF de reserva NO se entrega al reservar: recién al confirmar."""
+
+    @staticmethod
+    def _espiar(monkeypatch):
+        llamadas = []
+
+        def fake_send_email(to, subject, body, attachment_name=None, attachment_bytes=None):
+            llamadas.append((to, attachment_name, attachment_bytes))
+            return True
+
+        monkeypatch.setattr(notifications, "send_email", fake_send_email)
+        monkeypatch.setattr(notifications, "send_whatsapp_message", lambda *a, **k: True)
+        return llamadas
+
+    @staticmethod
+    def _de_clienta(llamadas):
+        return [c for c in llamadas if c[0] == "c@test.ni"]
+
+    def test_al_reservar_no_se_adjunta_pdf(self, app, monkeypatch):
+        llamadas = self._espiar(monkeypatch)
+        bid = _mk_booking(app, _next_monday(), "10:00")
+        with app.app_context():
+            notifications.notify_booking_created(db.session.get(Booking, bid))
+        cliente = self._de_clienta(llamadas)
+        assert len(cliente) == 1
+        assert cliente[0][1] is None
+        assert cliente[0][2] is None
+
+    def test_al_confirmar_se_adjunta_pdf(self, app, monkeypatch):
+        llamadas = self._espiar(monkeypatch)
+        bid = _mk_booking(app, _next_monday(), "11:00", status="confirmed")
+        with app.app_context():
+            notifications.notify_booking_status(db.session.get(Booking, bid))
+        cliente = self._de_clienta(llamadas)
+        assert len(cliente) == 1
+        assert cliente[0][1] == "reserva-beauty.pdf"
+        assert cliente[0][2].startswith(b"%PDF")
+
+    def test_al_cancelar_no_se_adjunta_pdf(self, app, monkeypatch):
+        llamadas = self._espiar(monkeypatch)
+        bid = _mk_booking(app, _next_monday(), "12:00", status="cancelled")
+        with app.app_context():
+            notifications.notify_booking_status(db.session.get(Booking, bid))
+        cliente = self._de_clienta(llamadas)
+        assert len(cliente) == 1
+        assert cliente[0][1] is None

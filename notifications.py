@@ -161,10 +161,10 @@ def send_email(to: str, subject: str, body: str, attachment_name: str | None = N
 
 
 def notify_booking_created(booking) -> None:
-    """Avisa a clienta y admin cuando hay nueva reserva."""
+    """Avisa a clienta y admin cuando hay nueva reserva (sin PDF: el comprobante
+    de reserva se entrega recién cuando el admin confirma la cita)."""
     title = booking.title
     when = f"{booking.preferred_date} {booking.preferred_time}"
-    confirmation_pdf = build_booking_pdf(booking)
     whatsapp_text = (
         f"Hola Beauty, quiero confirmar mi cita de {title} el {when}. "
         f"Mi nombre es {booking.full_name} y mi teléfono es {booking.phone}."
@@ -177,15 +177,13 @@ def notify_booking_created(booking) -> None:
         f"Anticipo sugerido: C$ {booking.deposit_amount:,.0f}.\n\n"
         f"Te confirmaremos pronto. También podés escribirnos por WhatsApp usando este enlace:\n"
         f"{whatsapp_url}\n\n"
-        f"Adjuntamos tu comprobante PDF de reserva.\n"
+        f"Cuando confirmemos la cita te enviaremos tu comprobante PDF de reserva.\n"
         f"— Beauty Nicaragua (Managua)"
     )
     send_email(
         booking.email,
         f"Solicitud recibida — {title}",
         client_body,
-        attachment_name="reserva-beauty.pdf",
-        attachment_bytes=confirmation_pdf,
     )
     send_whatsapp_message(booking.phone, whatsapp_text)
 
@@ -203,7 +201,11 @@ def notify_booking_created(booking) -> None:
 
 
 def notify_booking_status(booking) -> None:
-    """Notifica cambio de estado (confirmada / cancelada / reprogramar)."""
+    """Notifica cambio de estado (confirmada / cancelada / reprogramar).
+
+    El comprobante PDF de la reserva solo se adjunta cuando la cita pasa a
+    «confirmed» (decisión de producto: no se entrega al hacer la reserva).
+    """
     title = booking.title
     when = f"{booking.preferred_date} {booking.preferred_time}"
     body = (
@@ -211,9 +213,21 @@ def notify_booking_status(booking) -> None:
         f"Tu cita «{title}» ({when}) ahora está: {booking.status.upper()}.\n"
         f"Pago: {booking.payment_status}.\n"
         f"{booking.admin_notes and 'Nota: ' + booking.admin_notes + chr(10) or ''}"
-        f"\n— Beauty Nicaragua"
     )
-    send_email(booking.email, f"Actualización de cita — {booking.status}", body)
+    attachment_name = None
+    attachment_bytes = None
+    if booking.status == "confirmed":
+        attachment_name = "reserva-beauty.pdf"
+        attachment_bytes = build_booking_pdf(booking)
+        body += "\nAdjuntamos tu comprobante PDF de la reserva confirmada."
+    body += "\n\n— Beauty Nicaragua"
+    send_email(
+        booking.email,
+        f"Actualización de cita — {booking.status}",
+        body,
+        attachment_name=attachment_name,
+        attachment_bytes=attachment_bytes,
+    )
 
 
 def send_booking_reminder(booking) -> bool:
