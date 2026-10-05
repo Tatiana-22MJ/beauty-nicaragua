@@ -23,5 +23,5 @@ RUN mkdir -p instance/uploads
 # Expose port
 EXPOSE 5000
 
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--threads", "2", "--timeout", "60", "app:app"]
+# Run gunicorn (worker gthread = coherente con SocketIO async_mode threading)
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "60", "--worker-class", "gthread", "app:app"]

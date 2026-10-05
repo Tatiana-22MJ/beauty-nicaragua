@@ -5,19 +5,19 @@ services:
     build: .
     ports:
       - "5000:5000"
+    env_file: .env  # DATABASE_URL del pooler de Supabase + SECRET_KEY, etc.
     environment:
       - FLASK_ENV=development
-      - DATABASE_URL=postgresql://beauty:beauty_pass@db:5432/beauty
       - MAIL_ENABLED=0
-      - SECRET_KEY=dev-key-not-for-production
     volumes:
       - .:/app
-    depends_on:
-      - db
-    command: gunicorn --bind 0.0.0.0:5000 --reload app:app
+    command: gunicorn --bind 0.0.0.0:5000 --reload --worker-class gthread app:app
 
+  # BD opcional para desarrollo 100% offline. En producción se usa Supabase
+  # (DATABASE_URL al pooler); en dev, sin DATABASE_URL, corre SQLite local.
   db:
     image: postgres:15-alpine
+    profiles: ["local-db"]
     environment:
       - POSTGRES_USER=beauty
       - POSTGRES_PASSWORD=beauty_pass

@@ -1,12 +1,26 @@
-Flask==2.3.3
-Flask-SQLAlchemy==3.0.5
+# =============================================================================
+# requirements.txt — Beauty Nicaragua (producción)
+# Python 3.10+ · Probado en 3.11–3.14
+# =============================================================================
+
+# --- Core web ---
+Flask==3.1.0
+Werkzeug==3.1.3
+Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
-Flask-SocketIO==5.3.4
-Flask-Migrate==4.0.5
-Flask-Limiter==3.5.0
-Flask-WTF==1.2.1
-python-dotenv==1.0.0
-eventlet==0.33.3
-email-validator==2.0.0
-requests==2.31.0
-gunicorn==21.2.0
+Flask-SocketIO==5.3.6
+Flask-Limiter==3.8.0
+Flask-WTF==1.2.2
+Flask-Migrate==4.0.7
+python-dotenv==1.0.1
+
+# --- Datos / infra ---
+# psycopg3: driver Postgres moderno (Supabase). eventlet eliminado (deprecado + CVEs).
+psycopg[binary]>=3.2.1,<4.0.0
+supabase>=2.15.0,<3.0.0
+tzdata>=2024.2  # Base de zonas horarias en Windows (zoneinfo America/Managua)
+email-validator==2.2.0
+
+# --- Servicios externos ---
+requests==2.32.3
+gunicorn==23.0.0

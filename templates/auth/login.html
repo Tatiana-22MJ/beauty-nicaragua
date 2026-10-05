@@ -61,6 +61,7 @@
       <button type="submit" class="btn btn-primary btn-full">Entrar</button>
     </form>
 
+    <p class="auth-footer"><a href="{{ url_for('recuperar') }}">¿Olvidaste tu contraseña?</a></p>
     <p class="auth-footer">¿No tienes cuenta? <a href="{{ url_for('register', next=request.args.get('next')) }}">Regístrate gratis</a></p>
   </div>
 </main>

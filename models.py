@@ -5,9 +5,13 @@
 from datetime import datetime, timezone
 
 from flask_login import UserMixin
+from sqlalchemy import text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from extensions import db
+
+# Estados que ocupan un hueco de la agenda (para el índice único parcial).
+_ACTIVE_SLOT_STATUSES_SQL = "status IN ('pending','confirmed','reschedule')"
 
 
 class User(UserMixin, db.Model):
@@ -53,6 +57,7 @@ class Service(db.Model):
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     quote_only = db.Column(db.Boolean, default=False)  # True = “consultar precio” (ej. láser zonas).
+    is_seed = db.Column(db.Boolean, default=False, nullable=False)  # True = fila del catálogo base; seeds nunca la borra.
 
     def __repr__(self):
         return f"<Service {self.name}>"
@@ -72,6 +77,7 @@ class ServicePackage(db.Model):
     image_url = db.Column(db.String(500), default="")
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
+    is_seed = db.Column(db.Boolean, default=False, nullable=False)  # True = pack base; seeds nunca lo borra.
 
     def __repr__(self):
         return f"<ServicePackage {self.name}>"
@@ -102,6 +108,20 @@ class Booking(db.Model):
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    __table_args__ = (
+        # Anti doble-reserva: una sola cita ACTIVA por fecha+hora.
+        # Índice parcial (solo estados activos) → las canceladas/completadas
+        # liberan el hueco. Funciona igual en SQLite y Postgres.
+        db.Index(
+            "uq_bookings_active_slot",
+            "preferred_date",
+            "preferred_time",
+            unique=True,
+            sqlite_where=text(_ACTIVE_SLOT_STATUSES_SQL),
+            postgresql_where=text(_ACTIVE_SLOT_STATUSES_SQL),
+        ),
     )
 
     service = db.relationship("Service", backref=db.backref("bookings", lazy=True))

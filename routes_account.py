@@ -15,13 +15,15 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 from availability import available_slots, is_slot_free
 from extensions import db, limiter
 from models import AuditLog, Booking, Service, ServicePackage
 from notifications import notify_booking_status, whatsapp_link
-from validators import validate_date, validate_time
+from supabase_storage import upload_proof as upload_proof_to_supabase
+from validators import validate_date, validate_file_signature, validate_time
 
 account_bp = Blueprint("account", __name__, url_prefix="/mi-cuenta")
 
@@ -55,6 +57,20 @@ def dashboard():
         bank_account=current_app.config["BANK_ACCOUNT"],
         bank_holder=current_app.config["BANK_HOLDER"],
     )
+
+
+@account_bp.route("/cita/<int:booking_id>")
+@login_required
+def booking_detail(booking_id):
+    """Detalle de una cita propia (la plantilla ya existía sin ruta)."""
+    booking = db.session.get(Booking, booking_id)
+    if not booking or booking.user_id != current_user.id:
+        flash("Cita no encontrada.", "error")
+        return redirect(url_for("account.dashboard"))
+    wa_link = whatsapp_link(
+        f"Hola, soy {current_user.full_name}. Consulto sobre mi cita #{booking.id}."
+    )
+    return render_template("account/booking_detail.html", booking=booking, wa_link=wa_link)
 
 
 @account_bp.route("/cita/<int:booking_id>/cancelar", methods=["POST"])
@@ -101,7 +117,12 @@ def reschedule_booking(booking_id):
         booking.preferred_date = new_date
         booking.preferred_time = new_time
         booking.status = "reschedule"
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Ese horario acaba de ser reservado. Elegí otro, por favor.", "error")
+            return redirect(url_for("account.reschedule_booking", booking_id=booking.id))
         notify_booking_status(booking)
         flash("Solicitud de reprogramación enviada. Te confirmaremos pronto.", "success")
         return redirect(url_for("account.dashboard"))
@@ -128,12 +149,27 @@ def upload_proof(booking_id):
         flash("Formato no permitido. Usá PNG, JPG, WEBP o PDF.", "error")
         return redirect(url_for("account.dashboard"))
 
-    upload_dir = Path(current_app.config["UPLOAD_FOLDER"])
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    # Validar el CONTENIDO real (magic bytes), no solo la extensión:
+    # evita subir ejecutables renombrados a .png.
+    signature_error = validate_file_signature(file.stream, file.filename)
+    if signature_error:
+        flash(signature_error, "error")
+        return redirect(url_for("account.dashboard"))
+
     ext = secure_filename(file.filename).rsplit(".", 1)[-1].lower()
     filename = f"proof_{booking.id}_{uuid.uuid4().hex[:8]}.{ext}"
-    file.save(upload_dir / filename)
-    booking.payment_proof = filename
+    data = file.read()
+
+    # Preferencia: Supabase Storage (persistente entre deploys). Fallback: disco local.
+    stored_path = upload_proof_to_supabase(data, filename, content_type=file.mimetype or "application/octet-stream")
+    if stored_path:
+        booking.payment_proof = stored_path
+    else:
+        upload_dir = Path(current_app.config["UPLOAD_FOLDER"])
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        (upload_dir / filename).write_bytes(data)
+        booking.payment_proof = filename
+
     booking.payment_status = "pending_transfer"
     db.session.commit()
     flash("Comprobante recibido. Validaremos el anticipo pronto.", "success")

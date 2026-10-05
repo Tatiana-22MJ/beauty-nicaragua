@@ -1,0 +1,4 @@
+# Dependencias de desarrollo / CI
+pytest==8.3.3
+pytest-cov==5.0.0
+flake8==7.1.1

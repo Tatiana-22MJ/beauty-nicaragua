@@ -26,7 +26,7 @@
         <h3>#{{ b.id }} · {{ b.title }}</h3>
         <p>{{ b.full_name }} · {{ b.email }} · {{ b.phone }}</p>
         <p>{{ b.preferred_date }} {{ b.preferred_time }} · Anticipo {{ b.deposit_amount|nio }}</p>
-        <p>{{ b.message or 'Sin mensaje' }}{% if b.payment_proof %} · Comprobante: {{ b.payment_proof }}{% endif %}</p>
+        <p>{{ b.message or 'Sin mensaje' }}{% if b.payment_proof %} · <a href="{{ url_for('admin.ver_comprobante', booking_id=b.id) }}" target="_blank" rel="noopener">📎 Ver comprobante</a>{% endif %}</p>
       </div>
       <form method="post" class="admin-inline-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

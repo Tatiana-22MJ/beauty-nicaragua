@@ -5,6 +5,7 @@
 from datetime import datetime, time, timedelta
 
 from models import Booking
+from timeutils import now_ni, today_ni
 
 # Horarios operativos Managua (alineados a SalonInfo).
 WEEKDAY_START = time(8, 0)
@@ -56,8 +57,8 @@ def available_slots(date_str: str, exclude_booking_id: int | None = None) -> lis
         return []
     start, end = window
     taken = booked_times(date_str, exclude_booking_id=exclude_booking_id)
-    today = datetime.now().strftime("%Y-%m-%d")
-    now_hm = datetime.now().strftime("%H:%M")
+    today = today_ni().strftime("%Y-%m-%d")
+    now_hm = now_ni().strftime("%H:%M")
     slots = []
     for hm in _iter_slots(start, end):
         if hm in taken:

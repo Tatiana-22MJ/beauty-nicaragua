@@ -12,7 +12,9 @@ from flask_wtf.csrf import CSRFProtect  # Protección CSRF en formularios POST.
 
 db = SQLAlchemy()  # Instancia ORM global.
 login_manager = LoginManager()  # Auth.
-socketio = SocketIO(cors_allowed_origins="*")  # Chat tiempo real.
+# CORS se define en create_app (config.SOCKETIO_CORS_ORIGINS); sin argumentos,
+# python-socketio solo acepta same-origin → nunca dejar "*" en producción.
+socketio = SocketIO()
 csrf = CSRFProtect()  # Tokens CSRF.
 migrate = Migrate()  # alembic init/migrate.
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per hour"])  # Límite global suave.

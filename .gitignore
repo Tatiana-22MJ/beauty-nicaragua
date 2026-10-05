@@ -6,6 +6,8 @@ instance/*.db
 instance/*.db-journal
 .env
 .env.*
+!.env.example
+instance/uploads/
 .pytest_cache/
 .coverage
 coverage.xml

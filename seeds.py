@@ -182,10 +182,23 @@ SALON_INFO_SEED = {
 
 
 def seed_database(app):
-    """Upsert de servicios, packs, info del salón y usuario admin."""
+    """Upsert de servicios, packs, info del salón y usuario admin.
+
+    Reglas (a nivel profesional):
+    - Las filas con ``is_seed=True`` se actualizan con el catálogo base.
+    - Filas seed cuyo nombre ya no esté en el catálogo: se desactivan si tienen
+      reservas asociadas (integridad FK en Postgres) y se eliminan solo si
+      nadie las referencia.
+    - Filas creadas desde el panel admin (``is_seed=False``) NUNCA se tocan:
+      antes se borraban en cada arranque, perdiendo el trabajo del admin.
+    """
     seed_names = {item["name"] for item in SERVICES_SEED}
-    for service in Service.query.all():
-        if service.name not in seed_names:
+    for service in Service.query.filter_by(is_seed=True).all():
+        if service.name in seed_names:
+            continue  # Se actualiza en el upsert de abajo.
+        if service.bookings:
+            service.is_active = False  # Preserva historial de reservas.
+        else:
             db.session.delete(service)
 
     for item in SERVICES_SEED:
@@ -194,12 +207,17 @@ def seed_database(app):
             for key, value in item.items():
                 setattr(service, key, value)
             service.is_active = True
+            service.is_seed = True
         else:
-            db.session.add(Service(**item))
+            db.session.add(Service(**item, is_seed=True))
 
     pack_names = {item["name"] for item in PACKAGES_SEED}
-    for pack in ServicePackage.query.all():
-        if pack.name not in pack_names:
+    for pack in ServicePackage.query.filter_by(is_seed=True).all():
+        if pack.name in pack_names:
+            continue
+        if pack.bookings:
+            pack.is_active = False
+        else:
             db.session.delete(pack)
 
     for item in PACKAGES_SEED:
@@ -208,8 +226,9 @@ def seed_database(app):
             for key, value in item.items():
                 setattr(pack, key, value)
             pack.is_active = True
+            pack.is_seed = True
         else:
-            db.session.add(ServicePackage(**item))
+            db.session.add(ServicePackage(**item, is_seed=True))
 
     for key, value in SALON_INFO_SEED.items():
         row = SalonInfo.query.filter_by(key=key).first()

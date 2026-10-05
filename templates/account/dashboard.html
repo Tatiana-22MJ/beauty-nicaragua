@@ -72,6 +72,7 @@
         </div>
         <div class="account-actions">
           {% if b.status not in ['cancelled','completed'] %}
+          <a class="btn btn-ghost" href="{{ url_for('account.booking_detail', booking_id=b.id) }}">Detalle</a>
           <a class="btn btn-ghost" href="{{ url_for('account.reschedule_booking', booking_id=b.id) }}">Reprogramar</a>
           <form method="post" action="{{ url_for('account.cancel_booking', booking_id=b.id) }}" onsubmit="return confirm('¿Cancelar esta cita?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

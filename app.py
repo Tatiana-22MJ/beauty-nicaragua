@@ -3,6 +3,7 @@
 # =============================================================================
 
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,17 +18,20 @@ from flask import (
     session,
     url_for,
 )
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from sqlalchemy import inspect, text
+from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlparse
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_socketio import emit, join_room
-from sqlalchemy import inspect, text
 
 from availability import available_slots, is_slot_free
 from chatbot import get_bot_response
-from config import Config
+from config import Config, ProductionConfig, validate_production
 from extensions import csrf, db, limiter, login_manager, migrate, socketio
 from models import Booking, ChatMessage, SalonInfo, Service, ServicePackage, User
-from notifications import notify_booking_created, whatsapp_link
+from notifications import notify_booking_created, send_email, whatsapp_link
 from routes_account import account_bp
 from routes_admin import admin_bp
 from seeds import seed_database
@@ -44,6 +48,10 @@ from validators import (
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Sal para los tokens de restablecimiento de contraseña.
+RESET_SALT = "beauty-password-reset-v1"
+RESET_TOKEN_MAX_AGE = 3600  # 1 hora de validez del enlace.
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -56,6 +64,17 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Validación fail-fast: nunca arrancar en producción con secretos por defecto.
+    if getattr(config_class, "IS_PRODUCTION", False):
+        validate_production(app)
+
+    # Pool acotado solo para Postgres (Supabase): conexiones estables con Supavisor.
+    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql"):
+        app.config.setdefault(
+            "SQLALCHEMY_ENGINE_OPTIONS",
+            {"pool_pre_ping": True, "pool_size": 10, "max_overflow": 5},
+        )
+
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
     (BASE_DIR / "instance").mkdir(exist_ok=True)
 
@@ -64,7 +83,15 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
-    socketio.init_app(app, async_mode="threading")
+    socketio.init_app(
+        app,
+        async_mode="threading",
+        cors_allowed_origins=app.config.get("SOCKETIO_CORS_ORIGINS") or None,
+    )
+
+    # Detrás de Nginx/Railway/Render: IP y esquema reales para rate-limit y cookies seguras.
+    if app.config.get("TRUST_PROXY_HEADERS"):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     login_manager.login_view = "login"
     login_manager.login_message = "Inicia sesión para acceder."
@@ -78,6 +105,16 @@ def create_app(config_class=Config):
         db.create_all()
         migrate_schema()
         seed_database(app)
+
+    @app.after_request
+    def set_security_headers(response):
+        """Cabeceras HTTP de seguridad básicas."""
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if app.config.get("SESSION_COOKIE_SECURE"):
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
 
     @app.context_processor
     def inject_globals():
@@ -130,9 +167,17 @@ def migrate_schema():
             alters.append("ALTER TABLE services ADD COLUMN duration_minutes INTEGER DEFAULT 60")
         if "quote_only" not in cols:
             alters.append("ALTER TABLE services ADD COLUMN quote_only BOOLEAN DEFAULT 0")
+        if "is_seed" not in cols:
+            alters.append("ALTER TABLE services ADD COLUMN is_seed BOOLEAN DEFAULT 0")
         for sql in alters:
             db.session.execute(text(sql))
         if alters:
+            db.session.commit()
+
+    if "service_packages" in tables:
+        cols = {c["name"] for c in inspector.get_columns("service_packages")}
+        if "is_seed" not in cols:
+            db.session.execute(text("ALTER TABLE service_packages ADD COLUMN is_seed BOOLEAN DEFAULT 0"))
             db.session.commit()
 
     if "bookings" in tables:
@@ -158,6 +203,31 @@ def migrate_schema():
             db.session.execute(text(sql))
         if alters:
             db.session.commit()
+
+    _ensure_unique_slot_index()
+
+
+def _ensure_unique_slot_index():
+    """Índice único parcial anti doble-reserva (SQLite y Postgres lo soportan).
+
+    Si la BD ya contiene citas activas duplicadas, la creación falla: se
+    registra advertencia sin romper el arranque (hay que depurar los duplicados).
+    """
+    try:
+        db.session.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_active_slot "
+                "ON bookings (preferred_date, preferred_time) "
+                "WHERE status IN ('pending','confirmed','reschedule')"
+            )
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.warning(
+            "No se pudo crear uq_bookings_active_slot (¿citas activas duplicadas?). "
+            "Deduplica bookings activos por fecha+hora y reinicia."
+        )
 
 
 def get_salon_info():
@@ -254,7 +324,12 @@ def register_routes(app):
             user = User(full_name=full_name, username=username, email=email, phone=phone)
             user.set_password(password)
             db.session.add(user)
-            db.session.commit()
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Ese usuario o email acaba de registrarse. Probá con otro.", "error")
+                return render_template("auth/register.html", form_data=request.form, next_page=next_page)
             login_user(user)
             flash(f"¡Bienvenida, {full_name}! Tu cuenta ha sido creada.", "success")
             return redirect(next_page)
@@ -296,6 +371,69 @@ def register_routes(app):
         logout_user()
         flash("Has cerrado sesión correctamente.", "success")
         return redirect(url_for("index"))
+
+    # --- Restablecimiento de contraseña --------------------------------------
+
+    def _reset_serializer() -> URLSafeTimedSerializer:
+        return URLSafeTimedSerializer(app.config["SECRET_KEY"], salt=RESET_SALT)
+
+    @app.route("/recuperar", methods=["GET", "POST"])
+    @limiter.limit("5 per minute")
+    def recuperar():
+        """Solicitud de restablecimiento (sin revelar si el email existe)."""
+        if request.method == "POST":
+            identifier = request.form.get("identifier", "").strip()
+            user = User.query.filter(
+                (User.email == identifier) | (User.username == identifier)
+            ).first()
+            if user:
+                token = _reset_serializer().dumps(user.id)
+                reset_url = url_for("restablecer", token=token, _external=True)
+                body = (
+                    f"Hola {user.full_name},\n\n"
+                    f"Recibimos una solicitud para restablecer tu contraseña en Beauty Nicaragua.\n"
+                    f"Abre este enlace (vence en 1 hora):\n{reset_url}\n\n"
+                    f"Si no fuiste tú, ignora este mensaje y tu contraseña no cambiará.\n"
+                    f"— Beauty Nicaragua (Managua)"
+                )
+                send_email(user.email, "Restablece tu contraseña — Beauty Nicaragua", body)
+            flash(
+                "Si la cuenta existe, te enviamos un email con instrucciones.",
+                "info",
+            )
+            return redirect(url_for("login"))
+        return render_template("auth/recuperar.html")
+
+    @app.route("/restablecer/<token>", methods=["GET", "POST"])
+    @limiter.limit("10 per hour")
+    def restablecer(token):
+        try:
+            user_id = _reset_serializer().loads(token, max_age=RESET_TOKEN_MAX_AGE)
+        except SignatureExpired:
+            flash("El enlace expiró. Solicita uno nuevo.", "error")
+            return redirect(url_for("recuperar"))
+        except BadSignature:
+            flash("El enlace no es válido.", "error")
+            return redirect(url_for("recuperar"))
+
+        user = db.session.get(User, int(user_id))
+        if not user:
+            flash("Cuenta no encontrada.", "error")
+            return redirect(url_for("recuperar"))
+
+        if request.method == "POST":
+            password = request.form.get("password", "")
+            confirm = request.form.get("confirm_password", "")
+            error = validate_password(password, confirm)
+            if error:
+                flash(error, "error")
+                return render_template("auth/restablecer.html", token=token)
+            user.set_password(password)
+            db.session.commit()
+            flash("Contraseña actualizada. Ya puedes iniciar sesión.", "success")
+            return redirect(url_for("login"))
+
+        return render_template("auth/restablecer.html", token=token)
 
     @app.route("/reservar", methods=["POST"])
     @login_required
@@ -355,7 +493,15 @@ def register_routes(app):
             deposit_amount=deposit,
         )
         db.session.add(booking)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Índice único parcial uq_bookings_active_slot: alguien reservó el
+            # hueco entre el chequeo y el commit (race condition).
+            db.session.rollback()
+            logger.warning("Colisión de reserva detectada: %s %s", preferred_date, preferred_time)
+            flash("Ese horario acaba de ser reservado por otra persona. Elegí otro, por favor.", "error")
+            return redirect(url_for("index", _anchor="reservar"))
 
         try:
             notify_booking_created(booking)
@@ -420,8 +566,10 @@ def register_socket_events(app):
             emit("bot_message", {"message": bot_reply})
 
 
-app = create_app()
+# Selección de config por entorno: FLASK_ENV=production → ProductionConfig.
+app = create_app(ProductionConfig if os.environ.get("FLASK_ENV") == "production" else Config)
 
 
 if __name__ == "__main__":
+    # Servidor de desarrollo SOLO (gunicorn sirve producción; ver Procfile).
     socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
