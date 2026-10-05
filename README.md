@@ -6,7 +6,7 @@
 
 > 🌐 **En producción:** **https://web-production-6419f.up.railway.app** · Backend Flask (Docker) en Railway + Supabase (Postgres 17 + Storage) en `us-east-1`.
 
-**Beauty** es una aplicación web full stack de salón / spa médico localizada para **Managua, Nicaragua**, con precios en **Córdobas (C$ / NIO)**, chat en tiempo real restringido a usuarias autenticadas, animaciones buttery-smooth, narración con scroll (scrolltelling), renderizado 3D interactivo y catálogo de tratamientos alineado al mercado estético nicaragüense.
+**Beauty** es una aplicación web full stack de salón / spa médico localizada para **Managua, Nicaragua**, con chat en tiempo real restringido a usuarias autenticadas, animaciones buttery-smooth, narración con scroll (scrolltelling), renderizado 3D interactivo y catálogo de tratamientos alineado al mercado estético nicaragüense.
 
 ---
 
