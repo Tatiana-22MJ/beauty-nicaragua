@@ -29,6 +29,12 @@ Para hacer en modo práctica, con esqueletos `TODO` que Tatiana completa:
       `reviews.user_id`) con mi guía, probando `upgrade` y `downgrade` en local.
 - [ ] Correr `flake8 . --max-line-length=120` y arreglar a mano 3 avisos
       (2× E501 de línea larga + 1× F401 de import sin usar).
+- [ ] Ejercicio de seguridad con pip-audit (caso real del 12/10/2026):
+      1. Correr `pip-audit -r requirements.txt` y leer la tabla de vulnerabilidades.
+      2. Elegir una fila (por ejemplo `requests`), buscar la CVE y entender qué fallo explota (investigar una sola, sin prisa).
+      3. Actualizar el pin en `requirements.txt` a la versión de la columna "Fix Versions".
+      4. Instalar, correr `pytest` y volver a correr `pip-audit` hasta que diga "No known vulnerabilities found".
+      5. Referencia: el commit `1d3b9f4` ya hizo esto con Flask/Werkzeug/requests/python-dotenv (17 CVEs).
 - [ ] Preguntas de comprobación + mini ejercicio de mentoría sobre los cambios
       del 12/10/2026 (tests aislados, FLASK_ENV, CSV injection, casilla de políticas).
 

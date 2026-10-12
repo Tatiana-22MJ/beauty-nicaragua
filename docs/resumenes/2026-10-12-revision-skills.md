@@ -28,6 +28,10 @@ Después aplicamos los arreglos más importantes, en modo guiado.
 - **90 pruebas pasan** (88 de antes + 2 nuevas de la casilla de políticas).
 - flake8 sin avisos nuevos (quedan 3 E501 preexistentes = ejercicio práctico).
 - **No se quitó ninguna función de la web.**
+- El `pip-audit` del CI encontró **17 CVEs en 4 paquetes** (Flask, Werkzeug,
+  requests, python-dotenv); se actualizaron los pins a las versiones corregidas
+  (commit `1d3b9f4`) y la auditoría quedó limpia. Ejemplo real de por qué
+  vale la pena auditar dependencias.
 
 ## Conceptos nuevos de esta sesión
 
@@ -41,6 +45,8 @@ Después aplicamos los arreglos más importantes, en modo guiado.
   el antídoto es anteponer `'` (truco estándar OWASP).
 - **Defensa en profundidad**: repetir la misma protección en varios capas
   (casilla `required` en HTML **y** validación en el servidor).
+- **CVE**: lista pública de fallos de seguridad con nombre y número
+  (ej. `CVE-2026-102598`); `pip-audit` las busca en tus dependencias.
 - **Context processor** (Flask): función que mete variables en todas las
   plantillas para no repetirlas (`deposit_percent`, `policy`).
 
