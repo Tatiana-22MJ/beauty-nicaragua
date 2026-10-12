@@ -14,7 +14,7 @@
 - **Chat con Bella** (solo usuarias registradas) y **recordatorios 24 h** por WhatsApp/email automáticos.
 - **Anticipo por transferencia** con subida de comprobante, más QR y link de pago opcionales.
 - **Reseñas** aprobadas por el admin, ficha e historial de clientas, export CSV de citas.
-- **Panel administrativo**: citas, servicios, packs, reseñas, clientas y chats — con CI y backups diarios.
+- **Panel administrativo**: citas, servicios, packs, reseñas, clientas y chats — con CI y backups.
 
 ### Ejecutar en 4 pasos
 
@@ -72,7 +72,7 @@ Abrí [http://127.0.0.1:5000](http://127.0.0.1:5000). Sin `DATABASE_URL` usa **S
 | Storage | **Supabase Storage** (bucket privado `payment-proofs`, URLs firmadas) |
 | Migraciones | **Alembic** (baseline `9d90adb36db1`, única fuente de verdad del esquema) |
 | Deploy | **Railway** (Docker, healthcheck `/healthz`) — [demo](https://web-production-6419f.up.railway.app) |
-| CI/CD | GitHub Actions: pytest + flake8, recordatorios diarios y backups de BD |
+| CI/CD | GitHub Actions: pytest + flake8 + pip-audit; recordatorios y backups con ejecución manual (`workflow_dispatch`; crons desactivados, ver `PENDIENTES.md`) |
 | Chat | Solo usuarias **registradas / autenticadas** |
 | Visual | Hero full-bleed, scrolltelling, partículas 3D, imágenes locales |
 
@@ -80,13 +80,14 @@ Abrí [http://127.0.0.1:5000](http://127.0.0.1:5000). Sin `DATABASE_URL` usa **S
 
 - ✅ **Agenda por duración** — slots y solapes según `duration_minutes` de servicios y packs (nada de tratar todo como 60 min).
 - ✅ **Reseñas** — la clienta reseña sus citas completadas, el admin aprueba y se publican en la portada (SEO local).
-- ✅ **Recordatorios WhatsApp 24 h** — Twilio + email de respaldo, cron diario 07:00 Managua (GitHub Actions), marca `reminder_sent_at` y evita duplicados.
+- ✅ **Recordatorios WhatsApp 24 h** — Twilio + email de respaldo, marca `reminder_sent_at` y evita duplicados. Se disparan con `workflow_dispatch` (el cron diario está desactivado temporalmente, ver `PENDIENTES.md`).
 - ✅ **Admin completo** — paginación de citas, **export CSV**, listado y ficha de clienta con historial, gestión de reseñas, packs con duración.
 - ✅ **Supabase Fase 1** — Postgres + Storage con fallback local, rol dedicado `beauty_app` (mínimos privilegios) + RLS con policy por tabla.
 - ✅ **Alembic** — migraciones formales (sin `create_all` en producción), seeds idempotentes con flag `is_seed`.
 - ✅ **Observabilidad** — `/healthz` (DB check), Sentry opcional (`SENTRY_DSN`), logs JSON (`LOG_FORMAT=json`).
-- ✅ **CI + backups** — tests en cada push; `pg_dump` diario → bucket privado `backups` + artifact de 14 días.
+- ✅ **CI + pip-audit** — tests en cada push y auditoría de dependencias (CVE); `pg_dump` con ejecución manual → bucket privado `backups` + artifact de 14 días (cron desactivado temporalmente).
 - ✅ **Link/QR de pago** — configurable por `.env` (`PAYMENT_LINK`, `PAYMENT_QR_URL`, teléfono y referencia); se muestra en Mi cuenta y en el email de reserva.
+- ✅ **Políticas de reserva** — anticipo 30%, cancelación/reprogramación 24 h antes, tolerancia de 30 min y política de inasistencias: visibles en la portada y aceptadas con casilla (validada en el servidor) antes de reservar.
 - 🔜 Pendiente de producto: SEO local, modelo de personal.
 
 ---
@@ -118,7 +119,7 @@ Abrí [http://127.0.0.1:5000](http://127.0.0.1:5000). Sin `DATABASE_URL` usa **S
 
 ## 3. Requisitos previos
 
-- **Python 3.10+** (anotaciones `str | None` y sintaxis moderna).
+- **Python 3.11+** (probado en 3.11–3.14; anotaciones `str | None` y sintaxis moderna).
 - pip / entorno virtual recomendado.
 - Navegador moderno con WebGL (para el 3D) y WebSockets.
 
@@ -581,10 +582,10 @@ Beauty **no afirma afiliación** con esas marcas; las usa como referencia de mer
 ## 24. Roadmap sugerido
 
 - ✅ Panel admin para editar precios NIO sin tocar código (incluye duración y packs).
-- ✅ Recordatorios automáticos WhatsApp 24 h antes (Twilio + email, cron diario).
+- ✅ Recordatorios automáticos WhatsApp 24 h antes (Twilio + email; cron desactivado temporalmente, ejecución manual).
 - ✅ Alembic para migraciones formales (baseline + stamp en Supabase).
 - ✅ Tests automatizados (pytest + flake8) + CI en GitHub Actions.
-- ✅ Deploy en Railway (Docker + healthcheck `/healthz`), backups diarios de la BD.
+- ✅ Deploy en Railway (Docker + healthcheck `/healthz`), backups de la BD (cron desactivado temporalmente, ver `PENDIENTES.md`).
 - ✅ Link/QR de pago configurable por `.env` (junto al flujo de transferencia con comprobante).
 - 🔜 SEO local (Google Business Profile, sitemap, OG images).
 - 🔜 Modelo de personal (varias estilistas) cuando se valide la demanda.
@@ -598,6 +599,8 @@ Beauty **no afirma afiliación** con esas marcas; las usa como referencia de mer
 | [`DEPLOY.md`](DEPLOY.md) | Guía paso a paso de deploy en Railway + secrets de GitHub |
 | [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md) | Proyecto Supabase: pooler, rol `beauty_app`, RLS, Storage, backups |
 | [`TESTING_GUIDE.md`](TESTING_GUIDE.md) | Manual de pruebas manuales del flujo completo |
+| [`PENDIENTES.md`](PENDIENTES.md) | Tareas pendientes, práctica diferida y siguientes sesiones |
+| [`docs/resumenes/`](docs/resumenes/) | Bitácora de sesiones: qué hicimos y qué aprendimos |
 | [`docs/PLAN_MEJORAS.md`](docs/PLAN_MEJORAS.md) | Plan de mejoras y estado del backlog |
 | [`docs/README_COMPLETO.md`](docs/README_COMPLETO.md) | Documentación integral histórica |
 | [`docs/IMPLEMENTACION_COMPLETA.md`](docs/IMPLEMENTACION_COMPLETA.md) | Detalle de implementación por fase |
