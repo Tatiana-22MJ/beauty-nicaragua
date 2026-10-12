@@ -1,8 +1,10 @@
 name: Backup diario de Postgres (Supabase)
 
 on:
-  schedule:
-    - cron: "0 3 * * *"     # 21:00 en Managua
+  # DESACTIVADO el 12/10/2026 (fallaba a diario; ver PENDIENTES.md).
+  # Para reactivar: descomentar el schedule y subir el cambio a main.
+  # schedule:
+  #   - cron: "0 3 * * *"     # 21:00 en Managua
   workflow_dispatch: {}
 
 jobs:

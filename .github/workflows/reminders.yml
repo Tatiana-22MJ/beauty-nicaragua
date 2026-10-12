@@ -1,8 +1,10 @@
 name: Recordatorios WhatsApp/email (24 h antes)
 
 on:
-  schedule:
-    - cron: "0 13 * * *"   # 07:00 en Managua (UTC-6)
+  # DESACTIVADO el 12/10/2026 (fallaba a diario; ver PENDIENTES.md).
+  # Para reactivar: descomentar el schedule y subir el cambio a main.
+  # schedule:
+  #   - cron: "0 13 * * *"   # 07:00 en Managua (UTC-6)
   workflow_dispatch: {}     # ejecución manual desde la pestaña Actions
 
 jobs:
