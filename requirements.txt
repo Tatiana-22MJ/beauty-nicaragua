@@ -4,15 +4,15 @@
 # =============================================================================
 
 # --- Core web ---
-Flask==3.1.0
-Werkzeug==3.1.3
+Flask==3.1.3
+Werkzeug==3.1.9
 Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
 Flask-SocketIO==5.3.6
 Flask-Limiter==3.8.0
 Flask-WTF==1.2.2
 Flask-Migrate==4.0.7
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 
 # --- Datos / infra ---
 # psycopg3: driver Postgres moderno (Supabase). eventlet eliminado (deprecado + CVEs).
@@ -22,7 +22,7 @@ tzdata>=2024.2  # Base de zonas horarias en Windows (zoneinfo America/Managua)
 email-validator==2.2.0
 
 # --- Servicios externos ---
-requests==2.32.3
+requests==2.33.0
 gunicorn==23.0.0
 # Observabilidad: solo envía datos si SENTRY_DSN está definido.
 sentry-sdk[flask]>=2.14.0,<3.0.0
