@@ -76,6 +76,7 @@ class TestReservas:
             "preferred_date": "",
             "preferred_time": "",
             "message": "primera visita",
+            "accept_policies": "on",
         }
 
     def test_reserva_requiere_login(self, client):

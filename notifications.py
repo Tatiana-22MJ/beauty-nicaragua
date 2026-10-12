@@ -50,13 +50,13 @@ def send_whatsapp_message(to_phone: str, message: str, *, attachment_url: str | 
                 timeout=20,
             )
             response.raise_for_status()
-            logger.info("WhatsApp enviado a %s", to_phone)
+            logger.info("WhatsApp enviado (número omitido en logs)")
             return True
         except Exception:
-            logger.exception("Fallo al enviar WhatsApp a %s", to_phone)
+            logger.exception("Fallo al enviar WhatsApp")
             return False
 
-    logger.info("[WHATSAPP-LINK] to=%s url=%s", to_phone, whatsapp_link(message, to_phone))
+    logger.info("[WHATSAPP-LINK] Sin Twilio configurado; deep-link generado (datos omitidos en logs)")
     return True
 
 
@@ -126,7 +126,7 @@ def send_email(to: str, subject: str, body: str, attachment_name: str | None = N
     user = current_app.config.get("MAIL_USERNAME", "")
     password = current_app.config.get("MAIL_PASSWORD", "")
     if not mail_enabled and not (user and password):
-        logger.info("[EMAIL-MOCK] to=%s subject=%s\n%s", to, subject, body)
+        logger.info("[EMAIL-MOCK] subject=%s (destinatario y cuerpo omitidos en logs)", subject)
         if attachment_name and attachment_bytes:
             logger.info("[EMAIL-MOCK-ATTACHMENT] %s bytes=%d", attachment_name, len(attachment_bytes))
         return True
@@ -153,10 +153,10 @@ def send_email(to: str, subject: str, body: str, attachment_name: str | None = N
             if user and password:
                 smtp.login(user, password)
             smtp.send_message(msg)
-        logger.info("Email enviado a %s", to)
+        logger.info("Email enviado (destinatario omitido en logs)")
         return True
     except Exception:
-        logger.exception("Fallo al enviar email a %s", to)
+        logger.exception("Fallo al enviar email")
         return False
 
 

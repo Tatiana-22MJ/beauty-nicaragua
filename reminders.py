@@ -9,7 +9,7 @@ from datetime import timedelta
 from availability import ACTIVE_STATUSES
 from extensions import db
 from models import Booking
-from notifications import send_booking_reminder, whatsapp_link
+from notifications import send_booking_reminder
 from timeutils import now_ni, today_ni
 
 
@@ -32,19 +32,12 @@ def collect_pending(date_str: str | None = None) -> list[Booking]:
     )
 
 
-def preview_link(booking: Booking) -> str:
-    """Deep-link wa.me con el mensaje del recordatorio (fallback sin Twilio)."""
-    return whatsapp_link(
-        f"Hola {booking.full_name}, te recordamos tu cita de mañana "
-        f"({booking.title} {booking.preferred_time}).",
-        booking.phone,
-    )
-
-
 def send_pending(dry_run: bool = False) -> dict:
     """Envía los recordatorios pendientes. Requiere app context.
 
     Devuelve {"target": fecha, "pending": n, "sent": n, "failed": n}.
+    Solo imprime el id de la cita: los logs no deben contener
+    nombres ni teléfonos de las clientas.
     """
     date_str = target_date()
     pending = collect_pending(date_str)
@@ -52,15 +45,15 @@ def send_pending(dry_run: bool = False) -> dict:
 
     for booking in pending:
         if dry_run:
-            print(f"[DRY-RUN] #{booking.id} {booking.full_name} → {preview_link(booking)}")
+            print(f"[DRY-RUN] #{booking.id} {booking.preferred_time}")
             continue
         if send_booking_reminder(booking):
             booking.reminder_sent_at = now_ni().replace(tzinfo=None)
             db.session.commit()
             result["sent"] += 1
-            print(f"[OK] #{booking.id} → {booking.full_name} ({booking.phone})")
+            print(f"[OK] #{booking.id}")
         else:
             result["failed"] += 1
-            print(f"[FALLO] #{booking.id} → {booking.full_name}")
+            print(f"[FALLO] #{booking.id}")
 
     return result

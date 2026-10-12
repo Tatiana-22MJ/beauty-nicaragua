@@ -15,6 +15,14 @@ class TestConfig(Config):
     WTF_CSRF_ENABLED = False
     RATELIMIT_ENABLED = False
     SECRET_KEY = "test-secret-key-not-for-production"
+    # Red: los tests jamás deben enviar WhatsApp ni email reales.
+    # Sin estas credenciales, notifications.py cae en el modo "mock" (solo logs).
+    TWILIO_ACCOUNT_SID = ""
+    TWILIO_AUTH_TOKEN = ""
+    TWILIO_WHATSAPP_FROM = ""
+    MAIL_ENABLED = False
+    MAIL_USERNAME = ""
+    MAIL_PASSWORD = ""
 
 
 @pytest.fixture()

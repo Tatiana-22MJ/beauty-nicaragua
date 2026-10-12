@@ -50,6 +50,19 @@ def _audit(action: str, detail: str = "") -> None:
     )
 
 
+def _csv_cell(value: str) -> str:
+    """Neutraliza fórmulas de Excel en celdas de texto (=, +, - o @).
+
+    Una clienta podría escribir «=HYPERLINK(...)» en su nombre; si la dueña
+    abre el CSV en Excel, la fórmula se ejecutaría. Anteponer «'» la muestra
+    como texto plano (truco estándar de OWASP para CSV injection).
+    """
+    value = value or ""
+    if value[:1] in ("=", "+", "-", "@"):
+        return "'" + value
+    return value
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
@@ -285,13 +298,13 @@ def export_bookings_csv():
                 b.preferred_time,
                 b.status,
                 b.payment_status,
-                b.full_name,
-                b.email,
-                b.phone,
+                _csv_cell(b.full_name),
+                _csv_cell(b.email),
+                _csv_cell(b.phone),
                 b.service.name if b.service else "",
                 b.package.name if b.package else "",
                 f"{b.deposit_amount:.0f}",
-                b.admin_notes or b.message or "",
+                _csv_cell(b.admin_notes or b.message or ""),
                 b.created_at.isoformat(timespec="seconds") if b.created_at else "",
             ]
         )

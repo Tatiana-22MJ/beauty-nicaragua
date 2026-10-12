@@ -25,6 +25,10 @@ EXPOSE 5000
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=America/Managua
+# Producción por defecto: si alguien olvida la variable en Railway,
+# la app queda en modo seguro (cookies Secure, validate_production)
+# en vez de caer en la configuración de desarrollo.
+ENV FLASK_ENV=production
 
 # Run gunicorn (worker gthread = coherente con SocketIO async_mode threading).
 # El puerto ($PORT de la plataforma) lo lee Python desde gunicorn.conf.py:

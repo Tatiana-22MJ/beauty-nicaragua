@@ -394,6 +394,13 @@
         <h2 id="booking-title">Reserva tu Cita</h2>
         <p>Completá el formulario — te confirmamos en menos de 24 horas (Managua).</p>
         <div class="divider" aria-hidden="true"></div>
+        <ul class="policies-list" role="list">
+          <li>Anticipo del <strong>{{ "%.0f"|format(deposit_percent) }}%</strong> del servicio para apartar tu cita.</li>
+          <li>Cancelá o reprogramá sin cargo hasta <strong>{{ policy.cancellation_hours }} horas antes</strong>.</li>
+          <li>Tolerancia de llegada: <strong>{{ policy.late_tolerance_minutes }} minutos</strong>; después se libera el hueco.</li>
+          <li>Primera inasistencia se perdona; a partir de la segunda se cobra el <strong>100% del servicio</strong>.</li>
+        </ul>
+        <p class="policies-more"><a href="{{ url_for('terms') }}">Ver políticas completas</a></p>
       </header>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -477,7 +484,14 @@
 
         <label class="checkbox-label">
           <input type="checkbox" name="want_deposit" checked>
-          Calcular anticipo sugerido ({{ "%.0f"|format(30) }}%) para transferencia bancaria
+          Calcular anticipo sugerido ({{ "%.0f"|format(deposit_percent) }}%) para transferencia bancaria
+        </label>
+
+        <label class="checkbox-label">
+          <input type="checkbox" name="accept_policies" required>
+          Acepto las políticas de reserva: anticipo del {{ "%.0f"|format(deposit_percent) }}%,
+          cancelación o reprogramación hasta {{ policy.cancellation_hours }} horas antes,
+          tolerancia de {{ policy.late_tolerance_minutes }} minutos y política de inasistencias.
         </label>
 
         <button type="submit" class="btn btn-primary btn-full">Enviar Solicitud</button>

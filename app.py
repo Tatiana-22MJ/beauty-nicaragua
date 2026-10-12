@@ -183,6 +183,12 @@ def create_app(config_class=Config):
             "country_name": app.config.get("COUNTRY_NAME", "Nicaragua"),
             "whatsapp_url": whatsapp_link(),
             "csrf_enabled": app.config.get("WTF_CSRF_ENABLED", True),
+            "deposit_percent": app.config.get("DEPOSIT_PERCENT", 30),
+            "policy": {
+                "cancellation_hours": app.config.get("CANCELLATION_HOURS", 24),
+                "late_tolerance_minutes": app.config.get("LATE_TOLERANCE_MINUTES", 30),
+                "no_show_forgiven": app.config.get("NO_SHOW_FORGIVEN", 1),
+            },
             "payment": {
                 "bank_name": app.config.get("BANK_NAME", ""),
                 "bank_account": app.config.get("BANK_ACCOUNT", ""),
@@ -492,6 +498,7 @@ def register_routes(app):
         preferred_time = request.form.get("preferred_time", "").strip()
         message = request.form.get("message", "").strip()
         want_deposit = request.form.get("want_deposit") == "on"
+        accept_policies = request.form.get("accept_policies") == "on"
 
         service = db.session.get(Service, service_id) if service_id else None
         package = db.session.get(ServicePackage, package_id) if package_id else None
@@ -509,6 +516,8 @@ def register_routes(app):
         ]
         if not service and not package:
             errors.append("Selecciona un servicio o pack.")
+        if not accept_policies:
+            errors.append("Debés aceptar las políticas de cancelación para reservar.")
         if service and validate_service_id(service_id, service):
             errors.append(validate_service_id(service_id, service))
         duration = duration_for(service, package)

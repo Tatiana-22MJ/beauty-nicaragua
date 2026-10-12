@@ -131,6 +131,11 @@ class Config:
     # Anticipo sugerido (% del precio) para transferencias
     DEPOSIT_PERCENT = float(os.environ.get("DEPOSIT_PERCENT", "30"))
 
+    # Políticas del salón (definidas por la dueña; mostrarlas antes de reservar)
+    CANCELLATION_HOURS = 24       # cancelar/reprogramar sin cargo hasta N horas antes
+    LATE_TOLERANCE_MINUTES = 30   # tolerancia de llegada antes de liberar el hueco
+    NO_SHOW_FORGIVEN = 1          # inasistencias perdón antes de cobrar el 100%
+
     # Cuenta bancaria demo para transferencias (mostrar en UI)
     BANK_NAME = os.environ.get("BANK_NAME", "BAC Credomatic")
     BANK_ACCOUNT = os.environ.get("BANK_ACCOUNT", "XXXX-XXXX-XXXX-1234")

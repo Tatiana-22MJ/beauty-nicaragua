@@ -16,3 +16,5 @@ Thumbs.db
 server.log
 compile.log
 backups/
+.opencode/
+supabase/.temp/

@@ -67,8 +67,10 @@
 3. Credenciales:
    ```
    Usuario/Email:    admin
-   Contraseña:       Admin123!
+   Contraseña:       la de tu variable ADMIN_PASSWORD en .env
    ```
+   > La contraseña por defecto está prohibida: si `ADMIN_PASSWORD` no está
+   > definida en local, créala con `secrets.token_hex(16)` y anótala en tu `.env`.
 4. Botón: **INICIAR SESIÓN**
    - ✅ Te debe redirigir a `/admin/`
 
@@ -329,11 +331,11 @@ curl "http://127.0.0.1:5000/api/slots?date=fecha-mala"
 ### Rate Limiting
 1. Intenta login 11 veces en 1 minuto:
    ```bash
-   for i in {1..11}; do
-     curl -X POST http://127.0.0.1:5000/login \
-       -d "identifier=admin&password=Admin123!" \
-       -c cookies.txt
-   done
+    for i in {1..11}; do
+      curl -X POST http://127.0.0.1:5000/login \
+        -d "identifier=admin&password=$ADMIN_PASSWORD" \
+        -c cookies.txt
+    done
    ```
 2. En la 11ª, deberías recibir:
    ```

@@ -226,7 +226,7 @@ curl http://localhost:5000/registro
 curl http://localhost:5000/api/slots?date=2024-12-28
 
 # 3. Probar admin
-# → Login: admin/Admin123! (o tu contraseña en .env)
+# → Login: admin + la contraseña de ADMIN_PASSWORD en tu .env
 # → http://localhost:5000/admin/
 # → http://localhost:5000/admin/servicios
 
@@ -399,7 +399,9 @@ SalonInfo (config clave-valor)
 
 ### Crear admin seed
 ```bash
-python -c "from app import create_app, db; from models import User; app = create_app(); app.app_context().push(); u = User(username='admin', email='admin@beauty.com', is_admin=True); u.set_password('Admin123!'); db.session.add(u); db.session.commit(); print('Admin creado')"
+# Usa tu propia contraseña (nunca valores por defecto publicados)
+export ADMIN_PASS=$(python -c "import secrets; print(secrets.token_hex(16))")
+python -c "import os; from app import create_app, db; from models import User; app = create_app(); app.app_context().push(); u = User(username='admin', email='admin@beauty.com', is_admin=True); u.set_password(os.environ['ADMIN_PASS']); db.session.add(u); db.session.commit(); print('Admin creado')"
 ```
 
 ### Generar SECRET_KEY

@@ -121,6 +121,38 @@ class TestAgendaConDuracion:
             assert Booking.query.filter_by(user_id=uid).count() == 0
 
 
+class TestPoliticasReserva:
+    """La casilla de aceptación de políticas es obligatoria (validada en el servidor)."""
+
+    def _reservar(self, app, client, username, **extra):
+        uid = make_user(app, username, "Clave1234")
+        login(client, username, "Clave1234")
+        sid = _mk_service(app, "Corte Test Pol", 45)
+        data = {
+            "full_name": "Clienta Politica",
+            "email": "p@t.ni",
+            "phone": "+505 8877 2117",
+            "service_id": str(sid),
+            "preferred_date": _next_monday(),
+            "preferred_time": "09:00",
+        }
+        data.update(extra)
+        rv = client.post("/reservar", data=data, follow_redirects=True)
+        return uid, rv
+
+    def test_sin_aceptar_politicas_no_reserva(self, app, client):
+        uid, rv = self._reservar(app, client, "politica_no")
+        assert "políticas" in rv.get_data(as_text=True)
+        with app.app_context():
+            assert Booking.query.filter_by(user_id=uid).count() == 0
+
+    def test_aceptando_politicas_reserva(self, app, client):
+        uid, rv = self._reservar(app, client, "politica_si", accept_policies="on")
+        assert "Gracias" in rv.get_data(as_text=True)
+        with app.app_context():
+            assert Booking.query.filter_by(user_id=uid).count() == 1
+
+
 class TestHealthz:
     def test_healthz_ok(self, client):
         rv = client.get("/healthz")

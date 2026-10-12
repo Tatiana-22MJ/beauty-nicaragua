@@ -274,6 +274,20 @@ address { font-style: normal; }
   background: var(--gradient-brand); border-radius: 2px;
 }
 
+/* ── Políticas del salón (visibles antes de reservar) ── */
+.policies-list {
+  list-style: none; margin: 1.2rem auto 0; padding: 0;
+  max-width: 540px; text-align: left;
+  display: grid; gap: 0.4rem;
+  font-size: 0.92rem; color: var(--text-muted);
+}
+.policies-list li { padding-left: 1.4rem; position: relative; }
+.policies-list li::before {
+  content: "✓"; position: absolute; left: 0; color: var(--pink-light);
+}
+.policies-more { margin-top: 0.6rem; font-size: 0.88rem; }
+.policies-more a { color: var(--blue-light); }
+
 /* ── Hero ── */
 .hero {
   position: relative; min-height: 100svh;
